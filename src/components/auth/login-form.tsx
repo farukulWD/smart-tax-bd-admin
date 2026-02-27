@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Lock, Mail } from "lucide-react";
 import Cookies from "js-cookie";
 
 const loginSchema = z.object({
@@ -43,8 +44,7 @@ export function LoginForm() {
     try {
       const res = await login(values).unwrap();
       if (res.data?.user?.role === "admin" || res.data?.user?.role === "superAdmin") {
-
-        toast.success( res.message||"Login successful");
+        toast.success(res.message || "Login successful");
         Cookies.set("accessToken", res.data?.accessToken, { expires: 1 });
         const redirect = searchParams.get("redirect") || "/admin";
         router.push(redirect);
@@ -57,12 +57,10 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-full max-w-md border-border/70 shadow-xl shadow-primary/5">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
-        <CardDescription>
-          Enter your credentials to access the Smart Tax BD admin panel
-        </CardDescription>
+        <CardDescription>Enter your credentials to access the Smart Tax BD admin panel.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -74,7 +72,10 @@ export function LoginForm() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your email" {...field} />
+                    <div className="relative">
+                      <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input placeholder="Enter your email" className="pl-10" {...field} />
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -87,7 +88,10 @@ export function LoginForm() {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
+                    <div className="relative">
+                      <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input type="password" placeholder="••••••••" className="pl-10" {...field} />
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -13,7 +13,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Edit, MoreHorizontal, UserCheck, UserX } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Search, Edit, MoreHorizontal, UserCheck, UserX, UsersRound, ShieldAlert, UserSearch } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,7 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 export default function UsersPage() {
@@ -30,20 +31,27 @@ export default function UsersPage() {
   const [updateUser] = useUpdateUserMutation();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const users = data?.data || [];
+  const users = useMemo(() => data?.data ?? [], [data]);
 
-  const filteredUsers = users.filter((user: any) => 
-    user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.mobile?.includes(searchTerm) ||
-    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUsers = useMemo(
+    () =>
+      users.filter(
+        (user: any) =>
+          user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.mobile?.includes(searchTerm) ||
+          user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+    [users, searchTerm]
   );
+
+  const blockedUsersCount = users.filter((user: any) => user.status === "blocked").length;
 
   const toggleStatus = async (user: any) => {
     try {
       const newStatus = user.status === "active" ? "blocked" : "active";
       await updateUser({ mobile: user.mobile, data: { status: newStatus } }).unwrap();
-      toast.success(`User ${newStatus === 'active' ? 'activated' : 'blocked'} successfully`);
-    } catch (error) {
+      toast.success(`User ${newStatus === "active" ? "activated" : "blocked"} successfully`);
+    } catch {
       toast.error("Failed to update user status");
     }
   };
@@ -51,100 +59,136 @@ export default function UsersPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">User Management</h1>
-            <p className="text-zinc-500 dark:text-zinc-400">
-              View and manage all registered users in the system.
-            </p>
+            <h2 className="text-2xl font-bold tracking-tight">User Management</h2>
+            <p className="text-sm text-muted-foreground">View accounts, track roles, and control user access from one place.</p>
           </div>
-          <div className="relative w-full md:w-72">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+          <div className="relative w-full md:w-80">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search users..."
+              placeholder="Search by name, mobile, or email"
               className="pl-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-        </div>
+        </section>
 
-        <div className="rounded-md border bg-white dark:bg-zinc-900 overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Mobile</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
-                    Loading users...
-                  </TableCell>
-                </TableRow>
-              ) : filteredUsers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
-                    No users found.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredUsers.map((user: any) => (
-                  <TableRow key={user.mobile}>
-                    <TableCell className="font-medium text-nowrap">{user.name}</TableCell>
-                    <TableCell>{user.mobile}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize">
-                        {user.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={user.status === "active" ? "default" : "destructive"}
-                        className="capitalize"
-                      >
-                        {user.status || 'active'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => toast.info("Edit feature coming soon")}>
-                            <Edit className="mr-2 h-4 w-4" /> Edit Details
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            onClick={() => toggleStatus(user)}
-                            className={user.status === 'blocked' ? 'text-green-600' : 'text-red-600'}
-                          >
-                            {user.status === "blocked" ? (
-                              <><UserCheck className="mr-2 h-4 w-4" /> Unblock User</>
-                            ) : (
-                              <><UserX className="mr-2 h-4 w-4" /> Block User</>
-                            )}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+        <section className="grid gap-4 sm:grid-cols-3">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-muted-foreground">Total Users</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between">
+              <span className="text-2xl font-bold">{users.length}</span>
+              <UsersRound className="h-5 w-5 text-primary" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-muted-foreground">Blocked Users</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between">
+              <span className="text-2xl font-bold">{blockedUsersCount}</span>
+              <ShieldAlert className="h-5 w-5 text-primary" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-muted-foreground">Search Results</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between">
+              <span className="text-2xl font-bold">{filteredUsers.length}</span>
+              <UserSearch className="h-5 w-5 text-primary" />
+            </CardContent>
+          </Card>
+        </section>
+
+        <Card className="overflow-hidden">
+          <CardHeader className="border-b border-border">
+            <CardTitle className="text-base">Registered Users</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Mobile</TableHead>
+                    <TableHead className="hidden md:table-cell">Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                        Loading users...
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredUsers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-28 text-center text-muted-foreground">
+                        No users found for the current search.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredUsers.map((user: any) => (
+                      <TableRow key={user.mobile}>
+                        <TableCell className="font-medium text-nowrap">{user.name || "N/A"}</TableCell>
+                        <TableCell>{user.mobile}</TableCell>
+                        <TableCell className="hidden md:table-cell">{user.email || "N/A"}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize">
+                            {user.role || "user"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={user.status === "active" || !user.status ? "default" : "destructive"} className="capitalize">
+                            {user.status || "active"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => toast.info("Edit feature coming soon")}>
+                                <Edit className="mr-2 h-4 w-4" /> Edit Details
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => toggleStatus(user)}
+                                className={user.status === "blocked" ? "text-emerald-600" : "text-red-600"}
+                              >
+                                {user.status === "blocked" ? (
+                                  <>
+                                    <UserCheck className="mr-2 h-4 w-4" /> Unblock User
+                                  </>
+                                ) : (
+                                  <>
+                                    <UserX className="mr-2 h-4 w-4" /> Block User
+                                  </>
+                                )}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </AdminLayout>
   );
