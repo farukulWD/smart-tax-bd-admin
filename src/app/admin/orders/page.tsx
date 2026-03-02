@@ -1,6 +1,12 @@
 "use client";
 
-import { useGetAllTaxOrdersQuery } from "@/redux/api/order/orderApi";
+import { useMemo, useState } from "react";
+import {
+  IOrder,
+  useGetAllTaxOrdersQuery,
+  useGetSingleTaxOrderQuery,
+  useUpdateTaxOrderMutation,
+} from "@/redux/api/order/orderApi";
 import { AdminLayout } from "@/components/layouts/admin-layout";
 import {
   Table,
@@ -13,8 +19,25 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, FileSearch, ListChecks, Wallet, CheckCircle2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { CheckCircle2, Eye, FileSearch, ListChecks, Loader2, Save, Wallet } from "lucide-react";
 import { toast } from "sonner";
+
+type OrderStatus = "pending" | "processing" | "completed" | "cancelled";
+
+const ORDER_STATUS_OPTIONS: OrderStatus[] = ["pending", "processing", "completed", "cancelled"];
+const isOrderStatus = (value: string): value is OrderStatus => ORDER_STATUS_OPTIONS.includes(value as OrderStatus);
 
 const getStatusBadgeClass = (status: string) => {
   switch (status.toLowerCase()) {
@@ -31,12 +54,101 @@ const getStatusBadgeClass = (status: string) => {
   }
 };
 
+const getErrorMessage = (error: unknown) => {
+  const fallback = "Request failed. Please try again.";
+  if (!error || typeof error !== "object") return fallback;
+
+  const maybeError = error as { data?: { message?: string }; message?: string };
+  return maybeError.data?.message || maybeError.message || fallback;
+};
+
+const getTaxTypeLabel = (type: unknown) => {
+  if (!type) return "Unknown";
+  if (typeof type === "string") return type;
+  if (typeof type === "object" && type !== null) {
+    const typed = type as { title?: string; value?: string; _id?: string };
+    return typed.title || typed.value || typed._id || "Unknown";
+  }
+
+  return "Unknown";
+};
+
 export default function OrdersPage() {
   const { data, isLoading } = useGetAllTaxOrdersQuery();
-  const orders = data?.data || [];
+  const [updateTaxOrder, { isLoading: isUpdatingOrder }] = useUpdateTaxOrderMutation();
 
-  const paidCount = orders.filter((order: any) => order.isPaid).length;
-  const pendingCount = orders.filter((order: any) => order.status?.toLowerCase() === "pending").length;
+  const orders = useMemo<IOrder[]>(() => data?.data || [], [data]);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [draftOrderUpdates, setDraftOrderUpdates] = useState<{
+    status?: OrderStatus;
+    isPaid?: boolean;
+    payable_amount?: string;
+  }>({});
+
+  const { data: fetchedOrderData, isFetching } = useGetSingleTaxOrderQuery(selectedOrderId as string, {
+    skip: !selectedOrderId || !isDetailsOpen,
+  });
+
+  const fallbackOrder = orders.find((order) => order._id === selectedOrderId);
+  const selectedOrder = fetchedOrderData?.data || fallbackOrder;
+  const selectedStatusValue = (draftOrderUpdates.status || selectedOrder?.status || "pending").toLowerCase();
+  const selectedStatus = isOrderStatus(selectedStatusValue) ? selectedStatusValue : "pending";
+  const selectedPaid = draftOrderUpdates.isPaid ?? Boolean(selectedOrder?.isPaid);
+  const selectedAmount = draftOrderUpdates.payable_amount ?? String(selectedOrder?.payable_amount ?? 0);
+
+  const paidCount = orders.filter((order) => order.isPaid).length;
+  const pendingCount = orders.filter((order) => order.status?.toLowerCase() === "pending").length;
+
+  const openOrderDetails = (order: IOrder) => {
+    setSelectedOrderId(order._id || null);
+    const normalizedStatus = (order.status || "pending").toLowerCase();
+    setDraftOrderUpdates({
+      status: isOrderStatus(normalizedStatus) ? normalizedStatus : "pending",
+      isPaid: Boolean(order.isPaid),
+      payable_amount: String(order.payable_amount ?? 0),
+    });
+    setIsDetailsOpen(true);
+  };
+
+  const handleQuickUpdate = async (order: IOrder, payload: Partial<Pick<IOrder, "status" | "isPaid">>) => {
+    if (!order._id) return;
+    try {
+      await updateTaxOrder({
+        id: order._id,
+        data: payload,
+      }).unwrap();
+
+      toast.success("Order updated successfully");
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  };
+
+  const handleSaveDetails = async () => {
+    if (!selectedOrderId) return;
+
+    const parsedAmount = Number(selectedAmount);
+    if (Number.isNaN(parsedAmount) || parsedAmount < 0) {
+      toast.error("Payable amount must be a valid positive number");
+      return;
+    }
+
+    try {
+      await updateTaxOrder({
+        id: selectedOrderId,
+        data: {
+          status: selectedStatus,
+          isPaid: selectedPaid,
+          payable_amount: parsedAmount,
+        },
+      }).unwrap();
+
+      toast.success("Order details updated");
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  };
 
   return (
     <AdminLayout>
@@ -83,7 +195,7 @@ export default function OrdersPage() {
             <CardTitle className="text-base">All Orders</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            <div className="max-h-[60vh] overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -113,7 +225,7 @@ export default function OrdersPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    orders.map((order: any) => (
+                    orders.map((order) => (
                       <TableRow key={order._id}>
                         <TableCell className="font-mono text-xs text-nowrap text-muted-foreground">
                           {order._id?.substring(0, 8)}...
@@ -134,14 +246,32 @@ export default function OrdersPage() {
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => toast.info("Order detail view coming soon")}
-                            className="hover:bg-accent"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openOrderDetails(order)}
+                              disabled={!order._id}
+                            >
+                              <Eye className="mr-1 h-4 w-4" />
+                              View
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={order.status?.toLowerCase() === "completed"}
+                              onClick={() => handleQuickUpdate(order, { status: "completed" })}
+                            >
+                              Complete
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleQuickUpdate(order, { isPaid: !order.isPaid })}
+                            >
+                              {order.isPaid ? "Mark Unpaid" : "Mark Paid"}
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -151,6 +281,142 @@ export default function OrdersPage() {
             </div>
           </CardContent>
         </Card>
+
+        <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+          <DialogContent className="sm:max-w-xl">
+            <DialogHeader>
+              <DialogTitle>Order Details</DialogTitle>
+              <DialogDescription>Review full order info and update status, payment, and amount.</DialogDescription>
+            </DialogHeader>
+
+            {isFetching ? (
+              <div className="flex h-36 items-center justify-center text-muted-foreground">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading order details...
+              </div>
+            ) : !selectedOrder ? (
+              <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                Order details not found.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid gap-3 rounded-md border p-4 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Order ID</p>
+                    <p className="font-mono text-xs">{selectedOrder._id}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">User ID</p>
+                    <p className="font-mono text-xs">{selectedOrder.userId || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Mobile</p>
+                    <p className="text-sm font-medium">{selectedOrder.mobile || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Tax/VAT Number</p>
+                    <p className="text-sm">{selectedOrder.tax_or_vat_number || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Tax Year</p>
+                    <p className="text-sm">{selectedOrder.tax_year || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Taxable Income</p>
+                    <p className="text-sm">{selectedOrder.is_taxable_income ? "Yes" : "No"}</p>
+                  </div>
+                </div>
+
+                <div className="grid gap-3">
+                  <Label>Tax Types</Label>
+                  <div className="flex flex-wrap gap-2 rounded-md border p-3">
+                    {selectedOrder.tax_types?.length ? (
+                      selectedOrder.tax_types.map((type: unknown, index: number) => (
+                        <Badge key={`${getTaxTypeLabel(type)}-${index}`} variant="outline">
+                          {getTaxTypeLabel(type)}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-sm text-muted-foreground">No tax types assigned</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="status">Status</Label>
+                    <Select
+                      value={selectedStatus}
+                      onValueChange={(value) =>
+                        setDraftOrderUpdates((previous) => ({ ...previous, status: value as OrderStatus }))
+                      }
+                    >
+                      <SelectTrigger id="status" className="w-full">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ORDER_STATUS_OPTIONS.map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status[0].toUpperCase() + status.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="payable_amount">Payable Amount</Label>
+                    <Input
+                      id="payable_amount"
+                      type="number"
+                      min={0}
+                      value={selectedAmount}
+                      onChange={(event) =>
+                        setDraftOrderUpdates((previous) => ({
+                          ...previous,
+                          payable_amount: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between rounded-md border p-3">
+                  <Label htmlFor="isPaid">Payment Completed</Label>
+                  <Switch
+                    id="isPaid"
+                    checked={selectedPaid}
+                    onCheckedChange={(value) =>
+                      setDraftOrderUpdates((previous) => ({
+                        ...previous,
+                        isPaid: value,
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDetailsOpen(false)}>
+                Close
+              </Button>
+              <Button onClick={handleSaveDetails} disabled={!selectedOrder || isUpdatingOrder}>
+                {isUpdatingOrder ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   );

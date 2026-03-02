@@ -68,7 +68,7 @@ export default function FilesPage() {
             <CardTitle className="text-base">Uploaded Files</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            <div className="max-h-[60vh] overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>

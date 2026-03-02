@@ -110,7 +110,7 @@ export default function UsersPage() {
             <CardTitle className="text-base">Registered Users</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            <div className="max-h-[60vh] overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>

@@ -2,6 +2,7 @@ import { AdminLayout } from "@/components/layouts/admin-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bell, Shield, UserCog } from "lucide-react";
+import Link from "next/link";
 
 export default function SettingsPage() {
   return (
@@ -22,7 +23,9 @@ export default function SettingsPage() {
               <CardDescription>Update your profile and default dashboard behavior.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" className="w-full">Configure</Button>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/admin/profile">Open Profile</Link>
+              </Button>
             </CardContent>
           </Card>
 

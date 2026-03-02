@@ -2,6 +2,7 @@ import { TResponse } from "@/types";
 import { baseApi } from "../baseApi";
 
 export interface IOrder {
+  _id?: string;
   mobile: string;
   userId: string;
   tax_or_vat_number: string;
@@ -11,6 +12,8 @@ export interface IOrder {
   isPaid: boolean;
   payable_amount: number;
   tax_year: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const orderApi = baseApi.injectEndpoints({
@@ -50,6 +53,17 @@ const orderApi = baseApi.injectEndpoints({
       }),
       providesTags: (result, error, id) => [{ type: "orders", id }],
     }),
+    updateTaxOrder: builder.mutation<
+      TResponse<any>,
+      { id: string; data: Partial<Pick<IOrder, "status" | "isPaid" | "payable_amount">> }
+    >({
+      query: ({ id, data }) => ({
+        url: `/tax-orders/get-tax/${id}`,
+        method: "PATCH",
+        data,
+      }),
+      invalidatesTags: (result, error, { id }) => ["orders", { type: "orders", id }],
+    }),
   }),
 });
 
@@ -59,6 +73,7 @@ export const {
   useGetTaxTypesQuery,
   useGetAllTaxOrdersQuery,
   useGetSingleTaxOrderQuery,
+  useUpdateTaxOrderMutation,
 } = orderApi;
 
 

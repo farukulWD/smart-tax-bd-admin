@@ -9,6 +9,7 @@ import {
   FileText,
   Files,
   Settings,
+  UserCircle2,
   Menu,
   X,
   LogOut,
@@ -18,7 +19,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useLogoutMutation } from "@/redux/api/auth/authApi";
+import { useGetMeQuery, useLogoutMutation } from "@/redux/api/auth/authApi";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 
@@ -28,6 +29,7 @@ const navItems = [
   { name: "Tax Orders", href: "/admin/orders", icon: FileText },
   { name: "Tax Types", href: "/admin/tax-types", icon: Calculator },
   { name: "Files", href: "/admin/files", icon: Files },
+  { name: "Profile", href: "/admin/profile", icon: UserCircle2 },
   { name: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
@@ -35,7 +37,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
+  const { data: meData } = useGetMeQuery();
   const [logoutApi] = useLogoutMutation();
+  const currentUser = meData?.data;
+  const userInitial = currentUser?.name?.trim()?.charAt(0)?.toUpperCase() || "A";
 
   const currentPageTitle = useMemo(() => {
     const item =
@@ -165,11 +170,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
           <div className="flex items-center gap-3">
             <div className="hidden text-right sm:block">
-              <p className="text-sm font-medium">Admin User</p>
-              <p className="text-xs text-muted-foreground">Super Admin</p>
+              <p className="text-sm font-medium">{currentUser?.name || "Admin User"}</p>
+              <p className="text-xs capitalize text-muted-foreground">{currentUser?.role || "Admin"}</p>
             </div>
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 font-semibold text-primary">
-              A
+              {userInitial}
             </div>
           </div>
         </header>

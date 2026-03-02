@@ -31,11 +31,20 @@ const authApi = baseApi.injectEndpoints({
         data,
       }),
     }),
-    getMe: builder.query<TResponse<any>, any>({
+    getMe: builder.query<TResponse<any>, void>({
       query: () => ({
         url: "/users/get-me",
         method: "GET",
       }),
+      providesTags: ["profile"],
+    }),
+    updateMe: builder.mutation<TResponse<any>, { mobile: string; data: { name?: string; email?: string } }>({
+      query: ({ mobile, data }) => ({
+        url: `/users/update/${mobile}`,
+        method: "PATCH",
+        data,
+      }),
+      invalidatesTags: ["profile"],
     }),
     logout: builder.mutation<TResponse<any>, any>({
       query: () => ({
@@ -52,5 +61,6 @@ export const {
   useResetPasswordMutation,
   useForgotPasswordMutation,
   useGetMeQuery,
+  useUpdateMeMutation,
   useLogoutMutation,
 } = authApi;
