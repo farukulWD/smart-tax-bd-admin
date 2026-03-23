@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function proxy(request: NextRequest) {
-  const accessToken = request.cookies.get("accessToken")?.value;
+  const accessToken = request.cookies.get("adminAccessToken")?.value;
+  console.log(accessToken);
 
   if (!accessToken) {
     const loginUrl = new URL("/", request.url);
@@ -14,5 +15,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: "/dashboard/:path*",
+  matcher: "/admin/:path*",
 };

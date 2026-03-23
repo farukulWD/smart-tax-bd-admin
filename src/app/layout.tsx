@@ -16,7 +16,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Smart Tax BD Admin",
-  description: "Admin portal for managing Smart Tax BD users, tax orders, files, and tax type settings.",
+  description:
+    "Admin portal for managing Smart Tax BD users, tax orders, files, and tax type settings.",
 };
 
 export default function RootLayout({
