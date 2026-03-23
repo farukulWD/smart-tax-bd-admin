@@ -24,8 +24,6 @@ export interface IPersonalInformation {
 export interface IOrder {
   _id?: string;
   userId?: string;
-  is_self: boolean;
-  for_other_person: boolean;
   personal_iformation: IPersonalInformation;
   status: string;
   current_step: 1 | 2 | 3;
@@ -36,9 +34,14 @@ export interface IOrder {
   tax_year: string;
   documents?: string[];
   tax_payable_amount: number;
+  is_tax_payable_amount_paid: boolean;
   tax_paid_amount: number;
   fee_amount: number;
+  is_fee_amount_paid: boolean;
   fee_due_amount: number;
+  is_fee_due_amount_paid: boolean;
+  total_amount: number;
+  total_paid_amount: number;
   tax_paid_date?: string;
   createdAt?: string;
 }
@@ -46,6 +49,23 @@ export interface IOrder {
 export interface ISingleOrder {
   tax_order: IOrder;
   required_documents: string[];
+}
+
+interface IPayment {
+  _id: string;
+  userId: string;
+  orderId: string;
+  order: IOrder;
+  amount: number;
+  paymentFor:
+    | "fee_amount"
+    | "fee_due_amount"
+    | "tax_payable_amount"
+    | "remaining_all_amount";
+  currency: string;
+  status: "pending" | "completed" | "failed" | "cancelled";
+  transaction_id?: string;
+  payment_method?: string;
 }
 
 const orderApi = baseApi.injectEndpoints({
@@ -90,12 +110,12 @@ const orderApi = baseApi.injectEndpoints({
       {
         id: string;
         data: Partial<
-          Pick<IOrder, "status" | "tax_payable_amount" | "tax_paid_amount">
+          Pick<IOrder, "status" | "tax_payable_amount" | "fee_due_amount">
         >;
       }
     >({
       query: ({ id, data }) => ({
-        url: `/tax-orders/get-tax/${id}`,
+        url: `/tax-orders/update-tax-order/${id}`,
         method: "PATCH",
         data,
       }),
@@ -103,6 +123,13 @@ const orderApi = baseApi.injectEndpoints({
         "orders",
         { type: "orders", id },
       ],
+    }),
+    paymentsByOrderId: builder.query<TResponse<IPayment[]>, string>({
+      query: (id) => ({
+        url: `/payments/payments-by-order-id/${id}`,
+        method: "GET",
+      }),
+      providesTags: ["payments"],
     }),
   }),
 });
@@ -114,4 +141,5 @@ export const {
   useGetAllTaxOrdersQuery,
   useGetSingleTaxOrderQuery,
   useUpdateTaxOrderMutation,
+  usePaymentsByOrderIdQuery,
 } = orderApi;
