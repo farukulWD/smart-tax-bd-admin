@@ -101,7 +101,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 border-r border-border bg-card/95 backdrop-blur-md transition-transform duration-300 ease-in-out md:relative md:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 w-72 border-r border-border bg-card/95 backdrop-blur-md transition-transform duration-300 ease-in-out md:translate-x-0",
           !isSidebarOpen && "-translate-x-full md:translate-x-0 md:w-72",
         )}
       >
@@ -131,7 +131,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </Button>
           </div>
 
-          <nav className="flex-1 space-y-1.5 p-4">
+          <nav className="flex-1 space-y-1.5 overflow-y-auto p-4">
             {navItems.map((item) => {
               const active = isItemActive(item.href);
               return (
@@ -179,7 +179,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col md:pl-72">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-md sm:px-6">
           <div className="flex items-center gap-3">
             <Button

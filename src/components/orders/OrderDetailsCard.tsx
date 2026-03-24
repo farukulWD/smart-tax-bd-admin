@@ -36,6 +36,7 @@ import { globalErrorHandler } from "@/helpers/globalErrorHandler";
 import { IOrder } from "@/redux/api/order/orderApi";
 import StatusBadge from "./status-badge";
 import PaymentStatusBadge from "./payment-status-badge";
+import Link from "next/link";
 
 interface OrderDetailsCardProps {
   order: IOrder;
@@ -437,25 +438,20 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
                 </h3>
                 <div className="flex flex-wrap gap-4">
                   {order.documents.map((doc, idx) => (
-                    <a
-                      key={idx}
-                      href={doc}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group flex flex-col items-center gap-3 rounded-2xl border bg-background p-4 text-center transition-all hover:border-primary hover:shadow-xl hover:-translate-y-1 active:scale-95"
+                    <Link
+                      href={`/admin/files/${doc?._id}`}
+                      key={doc?._id}
+                      className="group flex flex-col items-center w-[150px] gap-3 rounded-2xl border bg-background p-4 text-center transition-all hover:border-primary hover:shadow-xl hover:-translate-y-1 active:scale-95"
                     >
                       <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/5 text-primary transition-colors group-hover:bg-primary group-hover:text-white shadow-sm ring-1 ring-primary/10">
                         <FileText className="h-10 w-10" />
                       </div>
-                      <div className="space-y-0.5">
-                        <span className="block text-[10px] font-black uppercase tracking-tighter text-muted-foreground">
-                          FILE
-                        </span>
-                        <span className="block text-xs font-bold truncate w-full max-w-[80px]">
-                          #{idx + 1}
-                        </span>
+                      <div className="space-y-0.5 w-full text-center">
+                        <p className="block text-[10px] font-black uppercase tracking-tighter text-muted-foreground truncate">
+                          {doc?.type}
+                        </p>
                       </div>
-                    </a>
+                    </Link>
                   ))}
                 </div>
               </div>

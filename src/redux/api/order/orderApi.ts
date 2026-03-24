@@ -1,5 +1,6 @@
 import { TResponse } from "@/types";
 import { baseApi } from "../baseApi";
+import { Ifile } from "../file/fileApi";
 
 export enum IncomeSource {
   GovtJob = "Income from Govt.Job",
@@ -32,7 +33,7 @@ export interface IOrder {
   income_from_ldt_company: boolean;
   source_of_income: IncomeSource[];
   tax_year: string;
-  documents?: string[];
+  documents?: Ifile[];
   tax_payable_amount: number;
   is_tax_payable_amount_paid: boolean;
   tax_paid_amount: number;
