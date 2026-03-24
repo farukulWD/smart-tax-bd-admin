@@ -28,7 +28,7 @@ const refreshAccessToken = async (): Promise<string | null> => {
 
     return accessToken;
   } catch (error) {
-    console.log("Error in refreshAccessToken", error);
+    console.error("Error in refreshAccessToken", error);
     return null;
   }
 };

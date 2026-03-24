@@ -90,8 +90,6 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
     }
   };
 
-  console.log(order?.status);
-
   return (
     <div className="grid gap-6">
       <Card className="overflow-hidden border-none shadow-xl ring-1 py-0 ring-black/5">

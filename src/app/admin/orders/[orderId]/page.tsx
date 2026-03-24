@@ -18,7 +18,6 @@ function OrderDetailsPage() {
   );
 
   const { tax_order } = fetchedOrderData?.data || {};
-  console.log(tax_order);
 
   if (isFetching) {
     return (
