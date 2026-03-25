@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,35 +14,10 @@ import {
   Wallet,
   ShieldCheck,
 } from "lucide-react";
-
-const getStats = (
-  data: { name: string; value: string; helper: string; icon: any }[],
-) => [
-  {
-    name: "Total Users",
-    value: "1,234",
-    helper: "+8.2% this month",
-    icon: Users,
-  },
-  {
-    name: "Pending Orders",
-    value: "56",
-    helper: "Needs review today",
-    icon: Clock3,
-  },
-  {
-    name: "Tax Types",
-    value: "12",
-    helper: "5 updated recently",
-    icon: Calculator,
-  },
-  {
-    name: "Documents",
-    value: "890",
-    helper: "96 uploaded this week",
-    icon: Files,
-  },
-];
+import { useGetUsersQuery } from "@/redux/api/user/userApi";
+import { useGetAllTaxOrdersQuery } from "@/redux/api/order/orderApi";
+import { useGetAllTaxTypesQuery } from "@/redux/api/tax-type/taxTypeApi";
+import { useGetAllFilesQuery } from "@/redux/api/file/fileApi";
 
 const quickActions = [
   { label: "Review Tax Orders", href: "/admin/orders", icon: FileText },
@@ -50,7 +27,55 @@ const quickActions = [
 ];
 
 export default function AdminDashboardPage() {
-  const stats = getStats([]);
+  const { data: usersData, isLoading: usersLoading } = useGetUsersQuery();
+  const { data: ordersData, isLoading: ordersLoading } =
+    useGetAllTaxOrdersQuery();
+  const { data: taxTypesData, isLoading: taxTypesLoading } =
+    useGetAllTaxTypesQuery();
+  const { data: filesData, isLoading: filesLoading } = useGetAllFilesQuery();
+
+  const totalUsers = usersData?.data?.length ?? 0;
+  const allOrders = ordersData?.data ?? [];
+  const pendingOrders = allOrders.filter(
+    (o) => o.status?.toLowerCase() === "pending",
+  ).length;
+  const totalTaxTypes = taxTypesData?.data?.length ?? 0;
+  const totalFiles = filesData?.data?.length ?? 0;
+
+  const recentOrders = [...allOrders]
+    .sort((a, b) => {
+      if (!a.createdAt || !b.createdAt) return 0;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    })
+    .slice(0, 3);
+
+  const stats = [
+    {
+      name: "Total Users",
+      value: usersLoading ? "—" : totalUsers.toLocaleString(),
+      helper: usersLoading ? "Loading..." : `${totalUsers} registered users`,
+      icon: Users,
+    },
+    {
+      name: "Pending Orders",
+      value: ordersLoading ? "—" : pendingOrders.toLocaleString(),
+      helper: ordersLoading ? "Loading..." : "Needs review today",
+      icon: Clock3,
+    },
+    {
+      name: "Tax Types",
+      value: taxTypesLoading ? "—" : totalTaxTypes.toLocaleString(),
+      helper: taxTypesLoading ? "Loading..." : `${totalTaxTypes} active types`,
+      icon: Calculator,
+    },
+    {
+      name: "Documents",
+      value: filesLoading ? "—" : totalFiles.toLocaleString(),
+      helper: filesLoading ? "Loading..." : `${totalFiles} files uploaded`,
+      icon: Files,
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
@@ -94,18 +119,34 @@ export default function AdminDashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {[
-              "Order #A1025 awaiting payment verification",
-              "Order #A1020 marked completed",
-              "Order #A1018 needs admin review",
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-lg border border-border bg-background px-4 py-3 text-sm"
-              >
-                {item}
-              </div>
-            ))}
+            {ordersLoading ? (
+              <p className="text-sm text-muted-foreground">
+                Loading orders...
+              </p>
+            ) : recentOrders.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No orders yet.</p>
+            ) : (
+              recentOrders.map((order) => (
+                <Link
+                  key={order._id}
+                  href={`/admin/orders/${order._id}`}
+                  className="block rounded-lg border border-border bg-background px-4 py-3 text-sm hover:bg-accent/50 transition-colors"
+                >
+                  <span className="font-medium">
+                    Order #{order._id?.slice(-6).toUpperCase()}
+                  </span>
+                  {" — "}
+                  <span className="capitalize text-muted-foreground">
+                    {order.status}
+                  </span>
+                  {order.personal_iformation?.name && (
+                    <span className="text-muted-foreground">
+                      {" "}· {order.personal_iformation.name}
+                    </span>
+                  )}
+                </Link>
+              ))
+            )}
             <Button asChild variant="outline" className="mt-2 w-full sm:w-auto">
               <Link href="/admin/orders">
                 Open Orders

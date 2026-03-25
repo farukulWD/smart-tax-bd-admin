@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useUpdateTaxOrderMutation } from "@/redux/api/order/orderApi";
+import { useUploadFileMutation } from "@/redux/api/file/fileApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -15,6 +15,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Loader2,
   Save,
@@ -29,6 +35,7 @@ import {
   Briefcase,
   History,
   DollarSign,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ORDER_STATUS_OPTIONS, OrderStatus } from "./helper";
@@ -37,6 +44,8 @@ import { IOrder } from "@/redux/api/order/orderApi";
 import StatusBadge from "./status-badge";
 import PaymentStatusBadge from "./payment-status-badge";
 import Link from "next/link";
+
+const ADMIN_FILE_TYPES = ["Acknowledgement", "Tax Certificate"] as const;
 
 interface OrderDetailsCardProps {
   order: IOrder;
@@ -48,6 +57,16 @@ const isOrderStatus = (value: string): value is OrderStatus =>
 export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
   const [updateTaxOrder, { isLoading: isUpdatingOrder }] =
     useUpdateTaxOrderMutation();
+  const [uploadFile, { isLoading: isUploading }] = useUploadFileMutation();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [uploadedFileId, setUploadedFileId] = useState<string | null>(null);
+  const [uploadForm, setUploadForm] = useState({
+    type: "",
+    name: "",
+    file: null as File | null,
+  });
 
   const [draftUpdates, setDraftUpdates] = useState<{
     status: OrderStatus;
@@ -91,6 +110,35 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
     }
   };
 
+  const handleUpload = async () => {
+    if (!uploadForm.file || !uploadForm.type || !uploadForm.name) {
+      toast.error("Please fill all fields and select a file");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", uploadForm.file);
+    formData.append(
+      "data",
+      JSON.stringify({
+        name: uploadForm.name,
+        type: uploadForm.type,
+        orderId: order._id,
+        userId: order.userId,
+      }),
+    );
+
+    try {
+      const result = await uploadFile(formData).unwrap();
+      toast.success("File uploaded successfully");
+      setUploadedFileId(result.data?._id ?? null);
+      setUploadForm({ type: "", name: "", file: null });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } catch (error) {
+      globalErrorHandler(error);
+    }
+  };
+
   return (
     <div className="grid gap-6">
       <Card className="overflow-hidden border-none shadow-xl ring-1 py-0 ring-black/5">
@@ -109,6 +157,13 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
             <div className="flex items-center gap-3 self-end sm:self-start">
               <StatusBadge status={order.status} />
               <PaymentStatusBadge order={order} />
+              <Button
+                onClick={() => setUploadModalOpen(true)}
+                className="h-10 gap-2 font-bold shadow-lg shadow-primary/20"
+              >
+                <Upload className="h-4 w-4" />
+                Upload File
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -459,6 +514,138 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog
+        open={uploadModalOpen}
+        onOpenChange={(open) => {
+          setUploadModalOpen(open);
+          if (!open) setUploadedFileId(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-extrabold">
+              <Upload className="h-5 w-5 text-primary" />
+              Upload File
+            </DialogTitle>
+          </DialogHeader>
+
+          {uploadedFileId ? (
+            <div className="flex flex-col items-center gap-6 py-6">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10">
+                <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-lg font-extrabold text-foreground">
+                  Upload Successful
+                </p>
+                <p className="text-sm text-muted-foreground font-medium">
+                  The file has been uploaded to this order.
+                </p>
+              </div>
+              <Link
+                href={`/admin/files/${uploadedFileId}`}
+                className="w-full"
+                onClick={() => setUploadModalOpen(false)}
+              >
+                <Button className="h-12 w-full font-black tracking-wide shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                  <FileText className="mr-2 h-5 w-5" />
+                  VIEW FILE
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="grid gap-5 pt-2">
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                  File Type
+                </Label>
+                <Select
+                  value={uploadForm.type}
+                  onValueChange={(value) =>
+                    setUploadForm((prev) => ({ ...prev, type: value }))
+                  }
+                >
+                  <SelectTrigger className="h-11 w-full bg-muted/10 border-muted font-semibold">
+                    <SelectValue placeholder="Select file type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ADMIN_FILE_TYPES.map((type) => (
+                      <SelectItem
+                        key={type}
+                        value={type}
+                        className="font-medium"
+                      >
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label
+                  htmlFor="upload_name"
+                  className="text-xs font-black uppercase tracking-widest text-muted-foreground"
+                >
+                  File Name
+                </Label>
+                <Input
+                  id="upload_name"
+                  placeholder="e.g. Tax Certificate 2024"
+                  className="h-11 bg-muted/10 border-muted font-semibold"
+                  value={uploadForm.name}
+                  onChange={(e) =>
+                    setUploadForm((prev) => ({
+                      ...prev,
+                      name: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label
+                  htmlFor="upload_file"
+                  className="text-xs font-black uppercase tracking-widest text-muted-foreground"
+                >
+                  Select File
+                </Label>
+                <Input
+                  id="upload_file"
+                  type="file"
+                  ref={fileInputRef}
+                  className="h-11 bg-muted/10 border-muted cursor-pointer font-semibold file:mr-3 file:font-bold file:text-primary"
+                  onChange={(e) =>
+                    setUploadForm((prev) => ({
+                      ...prev,
+                      file: e.target.files?.[0] ?? null,
+                    }))
+                  }
+                />
+              </div>
+
+              <Button
+                className="h-12 w-full font-black tracking-wide shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                onClick={handleUpload}
+                disabled={isUploading}
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    UPLOADING...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-5 w-5" />
+                    UPLOAD FILE
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
