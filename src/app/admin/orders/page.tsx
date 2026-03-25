@@ -57,7 +57,7 @@ export default function OrdersPage() {
       },
       {
         header: "Paid Amount",
-        cell: (order) => `৳${order.tax_paid_amount || 0}`,
+        cell: (order) => `৳${order.total_paid_amount || 0}`,
       },
       {
         header: "Status",

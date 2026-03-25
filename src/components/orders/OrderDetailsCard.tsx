@@ -436,7 +436,7 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
                       onChange={(event) =>
                         setDraftUpdates((previous) => ({
                           ...previous,
-                          fee_due_amount: event.target.value,
+                          fee_due_amount: event.target.value.replace(/^0+(\d)/, "$1"),
                         }))
                       }
                     />
@@ -457,7 +457,7 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
                       onChange={(event) =>
                         setDraftUpdates((previous) => ({
                           ...previous,
-                          tax_payable_amount: event.target.value,
+                          tax_payable_amount: event.target.value.replace(/^0+(\d)/, "$1"),
                         }))
                       }
                     />

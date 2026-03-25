@@ -52,7 +52,7 @@ export interface ISingleOrder {
   required_documents: string[];
 }
 
-interface IPayment {
+export interface IPayment {
   _id: string;
   userId: string;
   orderId: string;
@@ -67,6 +67,7 @@ interface IPayment {
   status: "pending" | "completed" | "failed" | "cancelled";
   transaction_id?: string;
   payment_method?: string;
+  createdAt?: string;
 }
 
 const orderApi = baseApi.injectEndpoints({
@@ -132,6 +133,13 @@ const orderApi = baseApi.injectEndpoints({
       }),
       providesTags: ["payments"],
     }),
+    getAllPayments: builder.query<TResponse<IPayment[]>, void>({
+      query: () => ({
+        url: "/payments/all",
+        method: "GET",
+      }),
+      providesTags: ["payments"],
+    }),
   }),
 });
 
@@ -143,4 +151,5 @@ export const {
   useGetSingleTaxOrderQuery,
   useUpdateTaxOrderMutation,
   usePaymentsByOrderIdQuery,
+  useGetAllPaymentsQuery,
 } = orderApi;

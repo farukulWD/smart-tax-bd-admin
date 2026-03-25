@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Calculator,
   ShieldCheck,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ const navItems = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { name: "Users", href: "/admin/users", icon: Users },
   { name: "Tax Orders", href: "/admin/orders", icon: FileText },
+  { name: "Payments", href: "/admin/payments", icon: CreditCard },
   { name: "Tax Types", href: "/admin/tax-types", icon: Calculator },
   { name: "Files", href: "/admin/files", icon: Files },
   { name: "Profile", href: "/admin/profile", icon: UserCircle2 },
