@@ -24,17 +24,17 @@ const refreshAccessToken = async (): Promise<string | null> => {
 
     const accessToken = response?.data?.data?.accessToken;
 
-    Cookies.set("accessToken", accessToken);
+    Cookies.set("adminAccessToken", accessToken);
 
     return accessToken;
   } catch (error) {
-    console.log("Error in refreshAccessToken", error);
+    console.error("Error in refreshAccessToken", error);
     return null;
   }
 };
 
 instance.interceptors.request.use(async (config) => {
-  let accessToken = Cookies.get("accessToken");
+  let accessToken = Cookies.get("adminAccessToken");
 
   if (accessToken && isTokenExpired(accessToken)) {
     accessToken = (await refreshAccessToken()) || "";
@@ -52,7 +52,7 @@ instance.interceptors.response.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 export { instance };

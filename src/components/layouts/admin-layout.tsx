@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import {
   Users,
   LayoutDashboard,
@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Calculator,
   ShieldCheck,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ const navItems = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { name: "Users", href: "/admin/users", icon: Users },
   { name: "Tax Orders", href: "/admin/orders", icon: FileText },
+  { name: "Payments", href: "/admin/payments", icon: CreditCard },
   { name: "Tax Types", href: "/admin/tax-types", icon: Calculator },
   { name: "Files", href: "/admin/files", icon: Files },
   { name: "Profile", href: "/admin/profile", icon: UserCircle2 },
@@ -36,19 +38,40 @@ const navItems = [
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const pathname = usePathname();
+  const params = useParams();
+
   const router = useRouter();
   const { data: meData } = useGetMeQuery();
   const [logoutApi] = useLogoutMutation();
   const currentUser = meData?.data;
-  const userInitial = currentUser?.name?.trim()?.charAt(0)?.toUpperCase() || "A";
+  const userInitial =
+    currentUser?.name?.trim()?.charAt(0)?.toUpperCase() || "A";
 
-  const currentPageTitle = useMemo(() => {
+  const { baseTitle, fullTitle, baseHref } = useMemo(() => {
     const item =
       navItems.find((nav) => nav.href === pathname) ??
-      navItems.find((nav) => nav.href !== "/admin" && pathname.startsWith(nav.href));
+      navItems.find(
+        (nav) => nav.href !== "/admin" && pathname.startsWith(nav.href),
+      );
 
-    return item?.name ?? "Admin";
-  }, [pathname]);
+    const base = item?.name ?? "Admin";
+    const href = item?.href ?? "/admin";
+    let full = base;
+
+    // Handle dynamic params if they exist
+    const paramValues = Object.values(params || {});
+    if (paramValues.length > 0) {
+      const displayParams = paramValues
+        .map((p) => (Array.isArray(p) ? p.join(" / ") : p))
+        .filter((p) => p && p !== "undefined");
+
+      if (displayParams.length > 0) {
+        full = `Single ${base}`;
+      }
+    }
+
+    return { baseTitle: base, fullTitle: full, baseHref: href };
+  }, [pathname, params]);
 
   const isItemActive = (href: string) => {
     if (href === "/admin") return pathname === href;
@@ -58,7 +81,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const handleLogout = async () => {
     try {
       await logoutApi({}).unwrap();
-      Cookies.remove("accessToken");
+      Cookies.remove("adminAccessToken");
       Cookies.remove("refreshToken");
       toast.success("Logged out successfully");
       router.push("/login");
@@ -80,19 +103,24 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 border-r border-border bg-card/95 backdrop-blur-md transition-transform duration-300 ease-in-out md:relative md:translate-x-0",
-          !isSidebarOpen && "-translate-x-full md:translate-x-0 md:w-72"
+          "fixed inset-y-0 left-0 z-50 w-72 border-r border-border bg-card/95 backdrop-blur-md transition-transform duration-300 ease-in-out md:translate-x-0",
+          !isSidebarOpen && "-translate-x-full md:translate-x-0 md:w-72",
         )}
       >
         <div className="flex h-full flex-col">
           <div className="flex h-16 items-center justify-between border-b border-border px-5">
-            <Link href="/admin" className="group flex items-center gap-2 font-semibold">
+            <Link
+              href="/admin"
+              className="group flex items-center gap-2 font-semibold"
+            >
               <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
                 <Calculator className="h-5 w-5" />
               </span>
               <span className="leading-tight">
                 Smart Tax
-                <span className="block text-xs font-medium text-muted-foreground">Admin Portal</span>
+                <span className="block text-xs font-medium text-muted-foreground">
+                  Admin Portal
+                </span>
               </span>
             </Link>
             <Button
@@ -105,7 +133,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </Button>
           </div>
 
-          <nav className="flex-1 space-y-1.5 p-4">
+          <nav className="flex-1 space-y-1.5 overflow-y-auto p-4">
             {navItems.map((item) => {
               const active = isItemActive(item.href);
               return (
@@ -116,13 +144,15 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                     "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
                     active
                       ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                   )}
                 >
                   <item.icon
                     className={cn(
                       "h-4 w-4",
-                      active ? "text-primary-foreground" : "text-muted-foreground group-hover:text-accent-foreground"
+                      active
+                        ? "text-primary-foreground"
+                        : "text-muted-foreground group-hover:text-accent-foreground",
                     )}
                   />
                   <span>{item.name}</span>
@@ -151,7 +181,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col md:pl-72">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-md sm:px-6">
           <div className="flex items-center gap-3">
             <Button
@@ -162,16 +192,40 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <div>
-              <p className="text-xs text-muted-foreground">Admin / {currentPageTitle}</p>
-              <h1 className="text-sm font-semibold sm:text-base">{currentPageTitle}</h1>
+            <div className="flex flex-col">
+              <nav className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Link
+                  href="/admin"
+                  className="transition-colors hover:text-foreground hover:underline underline-offset-4"
+                >
+                  Admin
+                </Link>
+                {baseHref !== "/admin" && (
+                  <>
+                    <span>/</span>
+                    <Link
+                      href={baseHref}
+                      className="transition-colors hover:text-foreground hover:underline underline-offset-4"
+                    >
+                      {baseTitle}
+                    </Link>
+                  </>
+                )}
+              </nav>
+              <h1 className="text-sm font-semibold sm:text-base">
+                {fullTitle}
+              </h1>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="hidden text-right sm:block">
-              <p className="text-sm font-medium">{currentUser?.name || "Admin User"}</p>
-              <p className="text-xs capitalize text-muted-foreground">{currentUser?.role || "Admin"}</p>
+              <p className="text-sm font-medium">
+                {currentUser?.name || "Admin User"}
+              </p>
+              <p className="text-xs capitalize text-muted-foreground">
+                {currentUser?.role || "Admin"}
+              </p>
             </div>
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 font-semibold text-primary">
               {userInitial}

@@ -6,7 +6,6 @@ import {
   useUpdateTaxTypeMutation,
   useDeleteTaxTypeMutation,
 } from "@/redux/api/tax-type/taxTypeApi";
-import { AdminLayout } from "@/components/layouts/admin-layout";
 import {
   Table,
   TableBody,
@@ -61,7 +60,7 @@ type TaxTypeValue =
   | "wealth_tax";
 
 type TaxType = {
-  _id?: string;
+  _id: string;
   title: string;
   rate: number;
   value: TaxTypeValue;
@@ -126,7 +125,10 @@ export default function TaxTypesPage() {
 
   const averageRate = useMemo(() => {
     if (!taxTypes.length) return 0;
-    const total = taxTypes.reduce((sum, type) => sum + Number(type.rate || 0), 0);
+    const total = taxTypes.reduce(
+      (sum, type) => sum + Number(type.rate || 0),
+      0,
+    );
     return Math.round(total / taxTypes.length);
   }, [taxTypes]);
 
@@ -149,7 +151,7 @@ export default function TaxTypesPage() {
             description: "",
             isActive: true,
             icon: "",
-          }
+          },
     );
     setIsModalOpen(true);
   };
@@ -197,194 +199,226 @@ export default function TaxTypesPage() {
   };
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
-        <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">Tax Types</h2>
-            <p className="text-sm text-muted-foreground">
-              Maintain tax categories and rates for filing operations.
-            </p>
-          </div>
-          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => handleOpenModal()}>
-                <Plus className="mr-2 h-4 w-4" /> Add Tax Type
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <form onSubmit={handleSubmit}>
-                <DialogHeader>
-                  <DialogTitle>{editingType ? "Edit Tax Type" : "Add Tax Type"}</DialogTitle>
-                  <DialogDescription>Provide title, value, rate, and description.</DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="title">Title</Label>
-                    <Input
-                      id="title"
-                      value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      placeholder="e.g. Income Tax"
-                      required
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="value">Value</Label>
-                    <Select
-                      value={formData.value}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, value: value as TaxTypeValue })
-                      }
-                    >
-                      <SelectTrigger id="value" className="w-full">
-                        <SelectValue placeholder="Select tax value" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TAX_TYPE_VALUES.map((item) => (
-                          <SelectItem key={item} value={item}>
-                            {formatTaxTypeLabel(item)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="rate">Rate</Label>
-                    <Input
-                      id="rate"
-                      type="number"
-                      min={0}
-                      step="any"
-                      value={formData.rate}
-                      onChange={(e) => setFormData({ ...formData, rate: e.target.value })}
-                      placeholder="15"
-                      required
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      placeholder="Add a short description"
-                      required
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="icon">Icon (optional)</Label>
-                    <Input
-                      id="icon"
-                      value={formData.icon}
-                      onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                      placeholder="calculator"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between rounded-md border p-3">
-                    <Label htmlFor="isActive">Active</Label>
-                    <Switch
-                      id="isActive"
-                      checked={formData.isActive}
-                      onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
-                    />
-                  </div>
+    <div className="space-y-6">
+      <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Tax Types</h2>
+          <p className="text-sm text-muted-foreground">
+            Maintain tax categories and rates for filing operations.
+          </p>
+        </div>
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={() => handleOpenModal()}>
+              <Plus className="mr-2 h-4 w-4" /> Add Tax Type
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <form onSubmit={handleSubmit}>
+              <DialogHeader>
+                <DialogTitle>
+                  {editingType ? "Edit Tax Type" : "Add Tax Type"}
+                </DialogTitle>
+                <DialogDescription>
+                  Provide title, value, rate, and description.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
+                    value={formData.title}
+                    onChange={(e) =>
+                      setFormData({ ...formData, title: e.target.value })
+                    }
+                    placeholder="e.g. Income Tax"
+                    required
+                  />
                 </div>
-                <DialogFooter>
-                  <Button type="submit">{editingType ? "Update" : "Create"}</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </section>
+                <div className="grid gap-2">
+                  <Label htmlFor="value">Value</Label>
+                  <Select
+                    value={formData.value}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, value: value as TaxTypeValue })
+                    }
+                  >
+                    <SelectTrigger id="value" className="w-full">
+                      <SelectValue placeholder="Select tax value" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TAX_TYPE_VALUES.map((item) => (
+                        <SelectItem key={item} value={item}>
+                          {formatTaxTypeLabel(item)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="rate">Rate</Label>
+                  <Input
+                    id="rate"
+                    type="number"
+                    min={0}
+                    step="any"
+                    value={formData.rate}
+                    onChange={(e) =>
+                      setFormData({ ...formData, rate: e.target.value })
+                    }
+                    placeholder="15"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
+                    placeholder="Add a short description"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="icon">Icon (optional)</Label>
+                  <Input
+                    id="icon"
+                    value={formData.icon}
+                    onChange={(e) =>
+                      setFormData({ ...formData, icon: e.target.value })
+                    }
+                    placeholder="calculator"
+                  />
+                </div>
+                <div className="flex items-center justify-between rounded-md border p-3">
+                  <Label htmlFor="isActive">Active</Label>
+                  <Switch
+                    id="isActive"
+                    checked={formData.isActive}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, isActive: checked })
+                    }
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit">
+                  {editingType ? "Update" : "Create"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </section>
 
-        <section className="grid gap-4 sm:grid-cols-2">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground">Total Categories</CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center justify-between">
-              <span className="text-2xl font-bold">{taxTypes.length}</span>
-              <Calculator className="h-5 w-5 text-primary" />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground">Average Rate</CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center justify-between">
-              <span className="text-2xl font-bold">{averageRate}%</span>
-              <HandCoins className="h-5 w-5 text-primary" />
-            </CardContent>
-          </Card>
-        </section>
-
-        <Card className="overflow-hidden">
-          <CardHeader className="border-b border-border">
-            <CardTitle className="text-base">Tax Categories</CardTitle>
+      <section className="grid gap-4 sm:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">
+              Total Categories
+            </CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="max-h-[60vh] overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Value</TableHead>
-                    <TableHead>Rate</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                        Loading tax types...
-                      </TableCell>
-                    </TableRow>
-                  ) : taxTypes.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                        No tax types found.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    taxTypes.map((type) => (
-                      <TableRow key={type._id}>
-                        <TableCell className="font-medium">{type.title}</TableCell>
-                        <TableCell>{formatTaxTypeLabel(type.value)}</TableCell>
-                        <TableCell>{type.rate}%</TableCell>
-                        <TableCell>
-                          <Badge variant={type.isActive ? "default" : "outline"}>
-                            {type.isActive ? "Active" : "Inactive"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="max-w-sm truncate">{type.description}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleOpenModal(type)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                              onClick={() => handleDelete(type._id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+          <CardContent className="flex items-center justify-between">
+            <span className="text-2xl font-bold">{taxTypes.length}</span>
+            <Calculator className="h-5 w-5 text-primary" />
           </CardContent>
         </Card>
-      </div>
-    </AdminLayout>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">
+              Average Rate
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <span className="text-2xl font-bold">{averageRate}%</span>
+            <HandCoins className="h-5 w-5 text-primary" />
+          </CardContent>
+        </Card>
+      </section>
+
+      <Card className="overflow-hidden">
+        <CardHeader className="border-b border-border">
+          <CardTitle className="text-base">Tax Categories</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="max-h-[60vh] overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Value</TableHead>
+                  <TableHead>Rate</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      className="h-24 text-center text-muted-foreground"
+                    >
+                      Loading tax types...
+                    </TableCell>
+                  </TableRow>
+                ) : taxTypes.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      className="h-24 text-center text-muted-foreground"
+                    >
+                      No tax types found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  taxTypes.map((type) => (
+                    <TableRow key={type._id}>
+                      <TableCell className="font-medium">
+                        {type.title}
+                      </TableCell>
+                      <TableCell>{formatTaxTypeLabel(type.value)}</TableCell>
+                      <TableCell>{type.rate}%</TableCell>
+                      <TableCell>
+                        <Badge variant={type.isActive ? "default" : "outline"}>
+                          {type.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="max-w-sm truncate">
+                        {type.description}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleOpenModal(type)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => handleDelete(type._id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
