@@ -17,6 +17,7 @@ import {
   Calculator,
   ShieldCheck,
   CreditCard,
+  Newspaper,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -31,6 +32,7 @@ const navItems = [
   { name: "Payments", href: "/admin/payments", icon: CreditCard },
   { name: "Tax Types", href: "/admin/tax-types", icon: Calculator },
   { name: "Files", href: "/admin/files", icon: Files },
+  { name: "News", href: "/admin/news", icon: Newspaper },
   { name: "Profile", href: "/admin/profile", icon: UserCircle2 },
   { name: "Settings", href: "/admin/settings", icon: Settings },
 ];
