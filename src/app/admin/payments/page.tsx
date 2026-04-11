@@ -62,7 +62,7 @@ export default function PaymentsPage() {
         header: "Client Name",
         cell: (payment) => (
           <span className="font-medium">
-            {payment.order?.personal_iformation?.name || "—"}
+            {payment.order?.personal_information?.name || "—"}
           </span>
         ),
       },
@@ -136,11 +136,7 @@ export default function PaymentsPage() {
           value={completedCount}
           icon={CheckCircle2}
         />
-        <OrderSummaryCard
-          title="Pending"
-          value={pendingCount}
-          icon={Clock}
-        />
+        <OrderSummaryCard title="Pending" value={pendingCount} icon={Clock} />
       </section>
 
       <Card className="overflow-hidden">

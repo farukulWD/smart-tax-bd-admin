@@ -25,7 +25,7 @@ export interface IPersonalInformation {
 export interface IOrder {
   _id?: string;
   userId?: string;
-  personal_iformation: IPersonalInformation;
+  personal_information: IPersonalInformation;
   status: string;
   current_step: 1 | 2 | 3;
   are_you_get_notice_from_tax_office: boolean;

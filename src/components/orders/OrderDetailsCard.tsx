@@ -186,7 +186,7 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
                       Full Name
                     </p>
                     <p className="text-base font-bold text-foreground">
-                      {order.personal_iformation?.name || "N/A"}
+                      {order.personal_information?.name || "N/A"}
                     </p>
                   </div>
                   <div className="space-y-1">
@@ -195,7 +195,7 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
                     </p>
                     <p className="flex items-center text-base font-bold text-foreground">
                       <Mail className="mr-2 h-4 w-4 text-primary opacity-70" />
-                      {order.personal_iformation?.email || "N/A"}
+                      {order.personal_information?.email || "N/A"}
                     </p>
                   </div>
                   <div className="space-y-1">
@@ -204,7 +204,7 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
                     </p>
                     <p className="flex items-center text-base font-bold text-foreground">
                       <Phone className="mr-2 h-4 w-4 text-primary opacity-70" />
-                      {order.personal_iformation?.phone || "N/A"}
+                      {order.personal_information?.phone || "N/A"}
                     </p>
                   </div>
                   <div className="space-y-1">
@@ -212,18 +212,18 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
                       Applicant Category
                     </p>
                     <div className="flex flex-wrap gap-2 pt-1">
-                      {order.personal_iformation?.are_you_student && (
+                      {order.personal_information?.are_you_student && (
                         <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-none">
                           STUDENT
                         </Badge>
                       )}
-                      {order.personal_iformation?.are_you_house_wife && (
+                      {order.personal_information?.are_you_house_wife && (
                         <Badge className="bg-pink-500/10 text-pink-600 hover:bg-pink-500/20 border-none">
                           HOUSEWIFE
                         </Badge>
                       )}
-                      {!order.personal_iformation?.are_you_student &&
-                        !order.personal_iformation?.are_you_house_wife && (
+                      {!order.personal_information?.are_you_student &&
+                        !order.personal_information?.are_you_house_wife && (
                           <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-none">
                             GENERAL
                           </Badge>
@@ -436,7 +436,10 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
                       onChange={(event) =>
                         setDraftUpdates((previous) => ({
                           ...previous,
-                          fee_due_amount: event.target.value.replace(/^0+(\d)/, "$1"),
+                          fee_due_amount: event.target.value.replace(
+                            /^0+(\d)/,
+                            "$1",
+                          ),
                         }))
                       }
                     />
@@ -457,7 +460,10 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
                       onChange={(event) =>
                         setDraftUpdates((previous) => ({
                           ...previous,
-                          tax_payable_amount: event.target.value.replace(/^0+(\d)/, "$1"),
+                          tax_payable_amount: event.target.value.replace(
+                            /^0+(\d)/,
+                            "$1",
+                          ),
                         }))
                       }
                     />

@@ -32,14 +32,16 @@ export default function OrdersPage() {
       {
         header: "Client Name",
         cell: (order) => (
-          <span className="font-medium">{order.personal_iformation?.name}</span>
+          <span className="font-medium">
+            {order.personal_information?.name}
+          </span>
         ),
       },
       {
         header: "Mobile",
         cell: (order) => (
           <span className="font-medium">
-            {order.personal_iformation?.phone}
+            {order.personal_information?.phone}
           </span>
         ),
       },

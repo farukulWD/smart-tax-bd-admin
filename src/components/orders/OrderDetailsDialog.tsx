@@ -148,7 +148,7 @@ export const OrderDetailsDialog = ({
               <div>
                 <p className="text-xs text-muted-foreground">Mobile</p>
                 <p className="text-sm font-medium">
-                  {order.personal_iformation?.phone || "N/A"}
+                  {order.personal_information?.phone || "N/A"}
                 </p>
               </div>
               <div>

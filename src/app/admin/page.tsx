@@ -120,9 +120,7 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {ordersLoading ? (
-              <p className="text-sm text-muted-foreground">
-                Loading orders...
-              </p>
+              <p className="text-sm text-muted-foreground">Loading orders...</p>
             ) : recentOrders.length === 0 ? (
               <p className="text-sm text-muted-foreground">No orders yet.</p>
             ) : (
@@ -139,9 +137,10 @@ export default function AdminDashboardPage() {
                   <span className="capitalize text-muted-foreground">
                     {order.status}
                   </span>
-                  {order.personal_iformation?.name && (
+                  {order.personal_information?.name && (
                     <span className="text-muted-foreground">
-                      {" "}· {order.personal_iformation.name}
+                      {" "}
+                      · {order.personal_information.name}
                     </span>
                   )}
                 </Link>
