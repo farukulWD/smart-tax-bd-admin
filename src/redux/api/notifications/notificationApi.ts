@@ -62,16 +62,23 @@ const notificationApi = baseApi.injectEndpoints({
       }),
       providesTags: ["notifications"],
     }),
+    getAdminUnreadCount: builder.query<TUnreadCountResponse, void>({
+      query: () => ({
+        url: "/notifications/all-unread-count",
+        method: "GET",
+      }),
+      providesTags: ["notifications"],
+    }),
     markAsRead: builder.mutation<TResponse<INotification>, string>({
       query: (id) => ({
-        url: `/notifications/${id}/read`,
+        url: `/notifications/${id}/admin-read`,
         method: "PATCH",
       }),
       invalidatesTags: ["notifications"],
     }),
     markAllAsRead: builder.mutation<TResponse<null>, void>({
       query: () => ({
-        url: "/notifications/read-all",
+        url: "/notifications/admin-read-all",
         method: "PATCH",
       }),
       invalidatesTags: ["notifications"],
@@ -89,6 +96,7 @@ const notificationApi = baseApi.injectEndpoints({
 export const {
   useGetAllNotificationsQuery,
   useGetUnreadCountQuery,
+  useGetAdminUnreadCountQuery,
   useMarkAsReadMutation,
   useMarkAllAsReadMutation,
   useDeleteNotificationMutation,

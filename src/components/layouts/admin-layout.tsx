@@ -23,7 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useGetMeQuery, useLogoutMutation } from "@/redux/api/auth/authApi";
-import { useGetUnreadCountQuery } from "@/redux/api/notifications/notificationApi";
+import { useGetAdminUnreadCountQuery } from "@/redux/api/notifications/notificationApi";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 
@@ -47,7 +47,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   const router = useRouter();
   const { data: meData } = useGetMeQuery();
-  const { data: unreadData } = useGetUnreadCountQuery();
+  const { data: unreadData } = useGetAdminUnreadCountQuery();
   const [logoutApi] = useLogoutMutation();
   const unreadCount = unreadData?.data?.count ?? 0;
   const currentUser = meData?.data;
@@ -143,6 +143,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           <nav className="flex-1 space-y-1.5 overflow-y-auto p-4">
             {navItems.map((item) => {
               const active = isItemActive(item.href);
+              const isNotifications = item.href === "/admin/notifications";
               return (
                 <Link
                   key={item.name}
@@ -163,7 +164,13 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                     )}
                   />
                   <span>{item.name}</span>
-                  {active && <ChevronRight className="ml-auto h-4 w-4" />}
+                  {isNotifications && unreadCount > 0 ? (
+                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  ) : (
+                    active && <ChevronRight className="ml-auto h-4 w-4" />
+                  )}
                 </Link>
               );
             })}
@@ -226,15 +233,17 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link href="/admin/notifications" className="relative">
-              <Button variant="ghost" size="icon" aria-label="Notifications">
-                <Bell className="h-5 w-5" />
+            <Link href="/admin/notifications">
+              <div className="relative inline-flex">
+                <Button variant="ghost" size="icon" aria-label="Notifications">
+                  <Bell className="h-5 w-5" />
+                </Button>
                 {unreadCount > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                  <span className="pointer-events-none absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
-              </Button>
+              </div>
             </Link>
             <div className="hidden text-right sm:block">
               <p className="text-sm font-medium">
