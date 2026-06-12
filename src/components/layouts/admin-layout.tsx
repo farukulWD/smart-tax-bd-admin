@@ -18,10 +18,12 @@ import {
   ShieldCheck,
   CreditCard,
   Newspaper,
+  Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useGetMeQuery, useLogoutMutation } from "@/redux/api/auth/authApi";
+import { useGetUnreadCountQuery } from "@/redux/api/notifications/notificationApi";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 
@@ -33,6 +35,7 @@ const navItems = [
   { name: "Tax Types", href: "/admin/tax-types", icon: Calculator },
   { name: "Files", href: "/admin/files", icon: Files },
   { name: "News", href: "/admin/news", icon: Newspaper },
+  { name: "Notifications", href: "/admin/notifications", icon: Bell },
   { name: "Profile", href: "/admin/profile", icon: UserCircle2 },
   { name: "Settings", href: "/admin/settings", icon: Settings },
 ];
@@ -44,7 +47,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   const router = useRouter();
   const { data: meData } = useGetMeQuery();
+  const { data: unreadData } = useGetUnreadCountQuery();
   const [logoutApi] = useLogoutMutation();
+  const unreadCount = unreadData?.data?.count ?? 0;
   const currentUser = meData?.data;
   const userInitial =
     currentUser?.name?.trim()?.charAt(0)?.toUpperCase() || "A";
@@ -221,6 +226,16 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-3">
+            <Link href="/admin/notifications" className="relative">
+              <Button variant="ghost" size="icon" aria-label="Notifications">
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </Button>
+            </Link>
             <div className="hidden text-right sm:block">
               <p className="text-sm font-medium">
                 {currentUser?.name || "Admin User"}
