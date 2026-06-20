@@ -72,6 +72,15 @@ export default function OrdersPage() {
         ),
       },
       {
+        header: "Files",
+        cell: (order) =>
+          order.files_upload_pending ? (
+            <span className="inline-flex items-center rounded-full border border-amber-400 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+              Files Pending
+            </span>
+          ) : null,
+      },
+      {
         header: "Actions",
         cell: (order) => (
           <div className="flex justify-start gap-2">

@@ -1,7 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useUpdateTaxOrderMutation } from "@/redux/api/order/orderApi";
+import {
+  useUpdateTaxOrderMutation,
+  useAdminUploadDocumentForUserMutation,
+} from "@/redux/api/order/orderApi";
 import { useUploadFileMutation } from "@/redux/api/file/fileApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +39,7 @@ import {
   History,
   DollarSign,
   Upload,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ORDER_STATUS_OPTIONS, OrderStatus } from "./helper";
@@ -46,6 +50,35 @@ import PaymentStatusBadge from "./payment-status-badge";
 import Link from "next/link";
 
 const ADMIN_FILE_TYPES = ["Acknowledgement", "Tax Certificate"] as const;
+
+const COMMON_REQUIRED_DOCUMENTS = ["TIN Certificate", "NID Copy", "Bank Statement"];
+const INCOME_SOURCE_DOCUMENT_MAP: Record<string, string[]> = {
+  "Income from Govt.Job": ["Salary Statement", "Tax Deduction Copy"],
+  "Income from Private Job": ["Salary Statement", "Tax Deduction Copy"],
+  "Income from Business": ["Trade License", "Purchase Statement", "Sales or Received Statement", "Profit & Loss Statement", "Balance Sheet"],
+  "Income from Rent": ["Tax Token"],
+  "Income from Agriculture": ["Others Documents"],
+  "Income from Financial Asset": ["DPS Certificate", "FDR Certificate", "Sonchoypotro Certificate", "Insurance Certificate", "Share Certificate", "Pension Scheme Certificate"],
+  "Income from Capital Gain": ["Land Purchase Documents", "Flat Purchase Documents", "Vehicle Purchase Documents"],
+  "Income from others Source": ["Others Documents"],
+  "Income from Forign Remitance": ["Bank Statement"],
+};
+
+function getRequiredDocuments(order: IOrder): string[] {
+  const required = new Set<string>(COMMON_REQUIRED_DOCUMENTS);
+  (order.source_of_income || []).forEach((source) => {
+    (INCOME_SOURCE_DOCUMENT_MAP[source as string] || []).forEach((doc) =>
+      required.add(doc),
+    );
+  });
+  if (order.are_you_get_notice_from_tax_office) {
+    required.add("Notice from Income Tax Office");
+  }
+  if (order.income_from_partnership_firm || order.income_from_ldt_company) {
+    required.add("Balance Sheet");
+  }
+  return Array.from(required);
+}
 
 interface OrderDetailsCardProps {
   order: IOrder;
@@ -58,6 +91,11 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
   const [updateTaxOrder, { isLoading: isUpdatingOrder }] =
     useUpdateTaxOrderMutation();
   const [uploadFile, { isLoading: isUploading }] = useUploadFileMutation();
+  const [adminUploadDocumentForUser] = useAdminUploadDocumentForUserMutation();
+  const [pendingDocFiles, setPendingDocFiles] = useState<
+    Record<string, File | null>
+  >({});
+  const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -136,6 +174,32 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
       globalErrorHandler(error);
+    }
+  };
+
+  const requiredDocuments = getRequiredDocuments(order);
+  const uploadedByType = new Map(
+    (order.documents || []).map((doc) => [doc.type, doc]),
+  );
+
+  const handleAdminDocUpload = async (docType: string) => {
+    const file = pendingDocFiles[docType];
+    if (!file || !order._id) return;
+    setUploadingDoc(docType);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", docType);
+      await adminUploadDocumentForUser({
+        taxId: order._id,
+        formData,
+      }).unwrap();
+      toast.success(`${docType} uploaded successfully`);
+      setPendingDocFiles((prev) => ({ ...prev, [docType]: null }));
+    } catch (error) {
+      globalErrorHandler(error);
+    } finally {
+      setUploadingDoc(null);
     }
   };
 
@@ -377,6 +441,68 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
 
           {/* Right Column: Decisions & Details */}
           <div className="space-y-10">
+            {/* Files Upload Missing Banner */}
+            {order.files_upload_pending && (
+              <section className="rounded-2xl border-2 border-amber-400 bg-amber-50 p-6">
+                <h3 className="mb-2 flex items-center gap-2 text-lg font-bold text-amber-700">
+                  <AlertTriangle className="h-5 w-5" />
+                  Files Upload Missing
+                </h3>
+                <p className="mb-4 text-sm text-amber-600">
+                  Client chose to upload files later. Upload required documents
+                  below on their behalf.
+                </p>
+                <div className="space-y-2">
+                  {requiredDocuments.map((doc) => {
+                    const uploaded = uploadedByType.get(doc);
+                    const isUploadingThis = uploadingDoc === doc;
+                    return (
+                      <div
+                        key={doc}
+                        className="flex items-center gap-3 rounded-xl border border-amber-200 bg-white p-3"
+                      >
+                        <p className="flex-1 truncate text-sm font-semibold text-foreground">
+                          {doc}
+                        </p>
+                        {uploaded ? (
+                          <Badge className="shrink-0 border-emerald-300 bg-emerald-100 text-emerald-700">
+                            <CheckCircle2 className="mr-1 h-3 w-3" />
+                            Uploaded
+                          </Badge>
+                        ) : (
+                          <div className="flex shrink-0 items-center gap-2">
+                            <Input
+                              type="file"
+                              accept="image/*,application/pdf"
+                              className="h-8 w-36 cursor-pointer text-xs"
+                              onChange={(e) =>
+                                setPendingDocFiles((prev) => ({
+                                  ...prev,
+                                  [doc]: e.target.files?.[0] ?? null,
+                                }))
+                              }
+                            />
+                            <Button
+                              size="sm"
+                              className="h-8"
+                              disabled={!pendingDocFiles[doc] || isUploadingThis}
+                              onClick={() => handleAdminDocUpload(doc)}
+                            >
+                              {isUploadingThis ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                "Upload"
+                              )}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
             {/* Administration Tools */}
             <section>
               <h3 className="mb-5 flex items-center text-xl font-bold text-foreground">
