@@ -1,0 +1,77 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main, release]
+
+env:
+  REPO_NAME: smart-tax-bd-admin
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'release' && 'prod' || 'dev' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve environment metadata
+        id: meta
+        run: |
+          if [ "${{ github.ref_name }}" = "release" ]; then
+            echo "env_tag=prod" >> $GITHUB_OUTPUT
+            echo "api_url=https://api.smarttaxbd.com" >> $GITHUB_OUTPUT
+            echo "deploy_path=/opt/smart-tax-bd/prod/admin" >> $GITHUB_OUTPUT
+          else
+            echo "env_tag=dev" >> $GITHUB_OUTPUT
+            echo "api_url=https://api.dev.smarttaxbd.com" >> $GITHUB_OUTPUT
+            echo "deploy_path=/opt/smart-tax-bd/dev/admin" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ vars.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:${{ steps.meta.outputs.env_tag }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ steps.meta.outputs.api_url }}
+
+      - name: Prepare deploy directory
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ vars.SSH_HOST }}
+          username: ${{ vars.SSH_USER }}
+          port: ${{ vars.SSH_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: mkdir -p ${{ steps.meta.outputs.deploy_path }}
+
+      - name: Copy compose file
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.SSH_HOST }}
+          username: ${{ vars.SSH_USER }}
+          port: ${{ vars.SSH_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: docker-compose.yml
+          target: ${{ steps.meta.outputs.deploy_path }}
+
+      - name: Start services
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ vars.SSH_HOST }}
+          username: ${{ vars.SSH_USER }}
+          port: ${{ vars.SSH_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ${{ steps.meta.outputs.deploy_path }}
+            echo "IMAGE=${{ vars.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:${{ steps.meta.outputs.env_tag }}" > .env
+            echo "WEB_HOST_PORT=${{ vars.WEB_HOST_PORT }}" >> .env
+            docker compose pull
+            docker compose up -d

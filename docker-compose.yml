@@ -1,0 +1,8 @@
+services:
+  web:
+    image: ${IMAGE}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${WEB_HOST_PORT}:3000"
+    env_file:
+      - .env
