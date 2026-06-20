@@ -18,14 +18,28 @@ export function useSocket() {
     const token = Cookies.get("adminAccessToken");
     if (!token || socketRef.current?.connected) return;
 
-    socketRef.current = io(getSocketUrl(), {
+    const url = getSocketUrl();
+    socketRef.current = io(url, {
       extraHeaders: { authorization: token },
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 2000,
     });
 
-    socketRef.current.on("notification", () => {
+    socketRef.current.on("connect", () => {
+      console.log("[Socket] Connected to", url, "id:", socketRef.current?.id);
+    });
+
+    socketRef.current.on("connect_error", (err) => {
+      console.error("[Socket] Connection error:", err.message);
+    });
+
+    socketRef.current.on("disconnect", (reason) => {
+      console.warn("[Socket] Disconnected:", reason);
+    });
+
+    socketRef.current.on("notification", (data) => {
+      console.log("[Socket] Notification received:", data);
       store.dispatch(baseApi.util.invalidateTags(["notifications"]));
     });
 
