@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useGetMeQuery, useLogoutMutation } from "@/redux/api/auth/authApi";
 import { useGetAdminUnreadCountQuery } from "@/redux/api/notifications/notificationApi";
+import { useSocket } from "@/hooks/useSocket";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 
@@ -46,6 +47,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const params = useParams();
 
   const router = useRouter();
+  useSocket();
+
   const { data: meData } = useGetMeQuery();
   const { data: unreadData } = useGetAdminUnreadCountQuery();
   const [logoutApi] = useLogoutMutation();
