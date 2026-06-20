@@ -34,6 +34,7 @@ export interface IOrder {
   source_of_income: IncomeSource[];
   tax_year: string;
   documents?: Ifile[];
+  files_upload_pending?: boolean;
   tax_payable_amount: number;
   is_tax_payable_amount_paid: boolean;
   tax_paid_amount: number;
@@ -140,6 +141,21 @@ const orderApi = baseApi.injectEndpoints({
       }),
       providesTags: ["payments"],
     }),
+    adminUploadDocumentForUser: builder.mutation<
+      TResponse<{ file: Ifile; files_upload_pending: boolean; missing_documents: string[] }>,
+      { taxId: string; formData: FormData }
+    >({
+      query: ({ taxId, formData }) => ({
+        url: `/tax-orders/${taxId}/admin-upload-document`,
+        method: "POST",
+        data: formData,
+      }),
+      invalidatesTags: (result, error, { taxId }) => [
+        "orders",
+        { type: "orders", id: taxId },
+        "files",
+      ],
+    }),
   }),
 });
 
@@ -152,4 +168,5 @@ export const {
   useUpdateTaxOrderMutation,
   usePaymentsByOrderIdQuery,
   useGetAllPaymentsQuery,
+  useAdminUploadDocumentForUserMutation,
 } = orderApi;
