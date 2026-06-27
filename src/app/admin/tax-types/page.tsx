@@ -33,6 +33,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Select,
   SelectContent,
@@ -101,9 +102,11 @@ export default function TaxTypesPage() {
   const { data, isLoading } = useGetAllTaxTypesQuery();
   const [createTaxType] = useCreateTaxTypeMutation();
   const [updateTaxType] = useUpdateTaxTypeMutation();
-  const [deleteTaxType] = useDeleteTaxTypeMutation();
+  const [deleteTaxType, { isLoading: isDeleting }] =
+    useDeleteTaxTypeMutation();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editingType, setEditingType] = useState<TaxType | null>(null);
   const [formData, setFormData] = useState<{
     title: string;
@@ -187,14 +190,14 @@ export default function TaxTypesPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this tax type?")) {
-      try {
-        await deleteTaxType(id).unwrap();
-        toast.success("Tax type deleted successfully");
-      } catch {
-        toast.error("Failed to delete tax type");
-      }
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await deleteTaxType(deleteId).unwrap();
+      toast.success("Tax type deleted successfully");
+      setDeleteId(null);
+    } catch {
+      toast.error("Failed to delete tax type");
     }
   };
 
@@ -405,7 +408,7 @@ export default function TaxTypesPage() {
                             variant="ghost"
                             size="icon"
                             className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                            onClick={() => handleDelete(type._id)}
+                            onClick={() => setDeleteId(type._id ?? null)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -419,6 +422,17 @@ export default function TaxTypesPage() {
           </div>
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={handleDelete}
+        loading={isDeleting}
+        variant="destructive"
+        title="Delete tax type"
+        description="This tax type will be permanently deleted. This action cannot be undone."
+        confirmText="Delete"
+      />
     </div>
   );
 }

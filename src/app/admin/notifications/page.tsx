@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 
 const TYPE_LABELS: Record<TNotificationType, string> = {
@@ -65,11 +66,13 @@ const TYPE_COLORS: Record<TNotificationType, string> = {
 export default function NotificationsPage() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [readFilter, setReadFilter] = useState<string>("all");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data, isLoading } = useGetAllNotificationsQuery({});
   const [markAsRead] = useMarkAsReadMutation();
   const [markAllAsRead, { isLoading: isMarkingAll }] = useMarkAllAsReadMutation();
-  const [deleteNotification] = useDeleteNotificationMutation();
+  const [deleteNotification, { isLoading: isDeleting }] =
+    useDeleteNotificationMutation();
 
   const allNotifications = useMemo<INotification[]>(
     () => data?.data ?? [],
@@ -106,11 +109,12 @@ export default function NotificationsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this notification?")) return;
+  const handleDelete = async () => {
+    if (!deleteId) return;
     try {
-      await deleteNotification(id).unwrap();
+      await deleteNotification(deleteId).unwrap();
       toast.success("Notification deleted");
+      setDeleteId(null);
     } catch {
       toast.error("Failed to delete notification");
     }
@@ -200,7 +204,7 @@ export default function NotificationsPage() {
             size="icon"
             className="text-destructive hover:bg-destructive/10 hover:text-destructive"
             title="Delete"
-            onClick={() => handleDelete(item._id)}
+            onClick={() => setDeleteId(item._id)}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -302,6 +306,17 @@ export default function NotificationsPage() {
           />
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={handleDelete}
+        loading={isDeleting}
+        variant="destructive"
+        title="Delete notification"
+        description="This notification will be permanently removed. This action cannot be undone."
+        confirmText="Delete"
+      />
     </div>
   );
 }

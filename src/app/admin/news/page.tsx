@@ -27,12 +27,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export default function NewsPage() {
   const { data, isLoading } = useGetAllNewsAdminQuery();
   const [createNews, { isLoading: isPendingCreate }] = useCreateNewsMutation();
   const [updateNews, { isLoading: isPending }] = useUpdateNewsMutation();
-  const [deleteNews] = useDeleteNewsMutation();
+  const [deleteNews, { isLoading: isDeleting }] = useDeleteNewsMutation();
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingNews, setEditingNews] = useState<INews | null>(null);
@@ -90,14 +92,14 @@ export default function NewsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this news item?")) {
-      try {
-        await deleteNews(id).unwrap();
-        toast.success("News deleted successfully");
-      } catch {
-        toast.error("Failed to delete news");
-      }
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await deleteNews(deleteId).unwrap();
+      toast.success("News deleted successfully");
+      setDeleteId(null);
+    } catch {
+      toast.error("Failed to delete news");
     }
   };
 
@@ -169,7 +171,7 @@ export default function NewsPage() {
             variant="ghost"
             size="icon"
             className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-            onClick={() => handleDelete(item._id)}
+            onClick={() => setDeleteId(item._id)}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -310,6 +312,17 @@ export default function NewsPage() {
           />
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={handleDelete}
+        loading={isDeleting}
+        variant="destructive"
+        title="Delete news item"
+        description="This news item will be permanently deleted. This action cannot be undone."
+        confirmText="Delete"
+      />
     </div>
   );
 }

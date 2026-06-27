@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   useGetAllFilesQuery,
   useDeleteFileMutation,
@@ -7,6 +8,7 @@ import {
 } from "@/redux/api/file/fileApi";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileIcon, Trash2, Files, CalendarClock, Eye } from "lucide-react";
 import { toast } from "sonner";
@@ -16,17 +18,18 @@ import { Column, DataTable } from "@/components/ui/data-table";
 
 const FilesPage = () => {
   const { data, isLoading } = useGetAllFilesQuery();
-  const [deleteFile] = useDeleteFileMutation();
+  const [deleteFile, { isLoading: isDeleting }] = useDeleteFileMutation();
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const files = data?.data || [];
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this file?")) {
-      try {
-        await deleteFile(id).unwrap();
-        toast.success("File deleted successfully");
-      } catch {
-        toast.error("Failed to delete file");
-      }
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await deleteFile(deleteId).unwrap();
+      toast.success("File deleted successfully");
+      setDeleteId(null);
+    } catch {
+      toast.error("Failed to delete file");
     }
   };
 
@@ -71,7 +74,7 @@ const FilesPage = () => {
             variant="ghost"
             size="icon"
             className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-            onClick={() => handleDelete(file._id!)}
+            onClick={() => setDeleteId(file._id!)}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -131,6 +134,17 @@ const FilesPage = () => {
           />
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={handleDelete}
+        loading={isDeleting}
+        variant="destructive"
+        title="Delete file"
+        description="This file will be permanently deleted. This action cannot be undone."
+        confirmText="Delete"
+      />
     </div>
   );
 };
