@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import {
   Users,
@@ -123,8 +124,15 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               href="/admin"
               className="group flex items-center gap-2 font-semibold"
             >
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
-                <Calculator className="h-5 w-5" />
+              <span className="inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl">
+                <Image
+                  src="/smart-tax-logo.png"
+                  alt="Smart Tax"
+                  width={36}
+                  height={36}
+                  className="h-9 w-9 object-contain"
+                  priority
+                />
               </span>
               <span className="leading-tight">
                 Smart Tax
