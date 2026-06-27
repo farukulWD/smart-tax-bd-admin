@@ -474,7 +474,7 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
                             <Input
                               type="file"
                               accept="image/*,application/pdf"
-                              className="h-8 w-36 cursor-pointer text-xs"
+                              className="h-8 w-36 cursor-pointer text-xs file:cursor-pointer"
                               onChange={(e) =>
                                 setPendingDocFiles((prev) => ({
                                   ...prev,
@@ -747,7 +747,7 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
                   id="upload_file"
                   type="file"
                   ref={fileInputRef}
-                  className="h-11 bg-muted/10 border-muted cursor-pointer font-semibold file:mr-3 file:font-bold file:text-primary"
+                  className="h-11 bg-muted/10 border-muted cursor-pointer font-semibold file:mr-3 file:cursor-pointer file:font-bold file:text-primary"
                   onChange={(e) =>
                     setUploadForm((prev) => ({
                       ...prev,
