@@ -51,15 +51,36 @@ import Link from "next/link";
 
 const ADMIN_FILE_TYPES = ["Acknowledgement", "Tax Certificate"] as const;
 
-const COMMON_REQUIRED_DOCUMENTS = ["TIN Certificate", "NID Copy", "Bank Statement"];
+const COMMON_REQUIRED_DOCUMENTS = [
+  "TIN Certificate",
+  "NID Copy",
+  "Bank Statement",
+];
 const INCOME_SOURCE_DOCUMENT_MAP: Record<string, string[]> = {
   "Income from Govt.Job": ["Salary Statement", "Tax Deduction Copy"],
   "Income from Private Job": ["Salary Statement", "Tax Deduction Copy"],
-  "Income from Business": ["Trade License", "Purchase Statement", "Sales or Received Statement", "Profit & Loss Statement", "Balance Sheet"],
+  "Income from Business": [
+    "Trade License",
+    "Purchase Statement",
+    "Sales or Received Statement",
+    "Profit & Loss Statement",
+    "Balance Sheet",
+  ],
   "Income from Rent": ["Tax Token"],
   "Income from Agriculture": ["Others Documents"],
-  "Income from Financial Asset": ["DPS Certificate", "FDR Certificate", "Sonchoypotro Certificate", "Insurance Certificate", "Share Certificate", "Pension Scheme Certificate"],
-  "Income from Capital Gain": ["Land Purchase Documents", "Flat Purchase Documents", "Vehicle Purchase Documents"],
+  "Income from Financial Asset": [
+    "DPS Certificate",
+    "FDR Certificate",
+    "Sonchoypotro Certificate",
+    "Insurance Certificate",
+    "Share Certificate",
+    "Pension Scheme Certificate",
+  ],
+  "Income from Capital Gain": [
+    "Land Purchase Documents",
+    "Flat Purchase Documents",
+    "Vehicle Purchase Documents",
+  ],
   "Income from others Source": ["Others Documents"],
   "Income from Forign Remitance": ["Bank Statement"],
 };
@@ -485,7 +506,9 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
                             <Button
                               size="sm"
                               className="h-8"
-                              disabled={!pendingDocFiles[doc] || isUploadingThis}
+                              disabled={
+                                !pendingDocFiles[doc] || isUploadingThis
+                              }
                               onClick={() => handleAdminDocUpload(doc)}
                             >
                               {isUploadingThis ? (
@@ -624,11 +647,11 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
                   Submitted Documentation
                 </h3>
                 <div className="flex flex-wrap gap-4">
-                  {order.documents.map((doc, idx) => (
+                  {order.documents.map((doc) => (
                     <Link
                       href={`/admin/files/${doc?._id}`}
                       key={doc?._id}
-                      className="group flex flex-col items-center w-[150px] gap-3 rounded-2xl border bg-background p-4 text-center transition-all hover:border-primary hover:shadow-xl hover:-translate-y-1 active:scale-95"
+                      className="group flex flex-col items-center w-37.5 gap-3 rounded-2xl border bg-background p-4 text-center transition-all hover:border-primary hover:shadow-xl hover:-translate-y-1 active:scale-95"
                     >
                       <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/5 text-primary transition-colors group-hover:bg-primary group-hover:text-white shadow-sm ring-1 ring-primary/10">
                         <FileText className="h-10 w-10" />
