@@ -443,12 +443,12 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
           <div className="space-y-10">
             {/* Files Upload Missing Banner */}
             {order.files_upload_pending && (
-              <section className="rounded-2xl border-2 border-amber-400 bg-amber-50 p-6">
-                <h3 className="mb-2 flex items-center gap-2 text-lg font-bold text-amber-700">
+              <section className="rounded-2xl border-2 border-amber-400 bg-amber-50 p-6 dark:border-amber-500/40 dark:bg-amber-500/10">
+                <h3 className="mb-2 flex items-center gap-2 text-lg font-bold text-amber-700 dark:text-amber-400">
                   <AlertTriangle className="h-5 w-5" />
                   Files Upload Missing
                 </h3>
-                <p className="mb-4 text-sm text-amber-600">
+                <p className="mb-4 text-sm text-amber-600 dark:text-amber-300/80">
                   Client chose to upload files later. Upload required documents
                   below on their behalf.
                 </p>
@@ -459,13 +459,13 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
                     return (
                       <div
                         key={doc}
-                        className="flex items-center gap-3 rounded-xl border border-amber-200 bg-white p-3"
+                        className="flex items-center gap-3 rounded-xl border border-amber-200 bg-white p-3 dark:border-amber-500/20 dark:bg-background"
                       >
                         <p className="flex-1 truncate text-sm font-semibold text-foreground">
                           {doc}
                         </p>
                         {uploaded ? (
-                          <Badge className="shrink-0 border-emerald-300 bg-emerald-100 text-emerald-700">
+                          <Badge className="shrink-0 border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-400">
                             <CheckCircle2 className="mr-1 h-3 w-3" />
                             Uploaded
                           </Badge>
