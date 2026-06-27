@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/login-form";
 import { Badge } from "@/components/ui/badge";
 import { ShieldCheck } from "lucide-react";
@@ -15,7 +16,9 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Smart Tax BD Admin Portal</h1>
           <p className="text-sm text-muted-foreground">Sign in to manage users, orders, files, and tax service settings.</p>
         </div>
-        <LoginForm />
+        <Suspense fallback={null}>
+          <LoginForm />
+        </Suspense>
       </div>
     </div>
   );

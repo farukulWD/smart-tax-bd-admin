@@ -113,7 +113,13 @@ const orderApi = baseApi.injectEndpoints({
       {
         id: string;
         data: Partial<
-          Pick<IOrder, "status" | "tax_payable_amount" | "fee_due_amount">
+          Pick<
+            IOrder,
+            | "status"
+            | "tax_payable_amount"
+            | "fee_due_amount"
+            | "tax_paid_amount"
+          >
         >;
       }
     >({
