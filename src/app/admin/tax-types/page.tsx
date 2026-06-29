@@ -41,6 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { readLocalized, type LocalizedText } from "@/lib/localize";
 
 type TaxTypeValue =
   | "income_tax"
@@ -62,12 +63,12 @@ type TaxTypeValue =
 
 type TaxType = {
   _id: string;
-  title: string;
+  title: LocalizedText | string;
   rate: number;
   value: TaxTypeValue;
   icon?: string;
   tax_orders_id?: string[];
-  description: string;
+  description: LocalizedText | string;
   isActive: boolean;
   createdAt?: Date;
   updatedAt?: Date;
@@ -109,17 +110,21 @@ export default function TaxTypesPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editingType, setEditingType] = useState<TaxType | null>(null);
   const [formData, setFormData] = useState<{
-    title: string;
+    titleEn: string;
+    titleBn: string;
     rate: string;
     value: TaxTypeValue;
-    description: string;
+    descriptionEn: string;
+    descriptionBn: string;
     isActive: boolean;
     icon: string;
   }>({
-    title: "",
+    titleEn: "",
+    titleBn: "",
     rate: "",
     value: "income_tax",
-    description: "",
+    descriptionEn: "",
+    descriptionBn: "",
     isActive: true,
     icon: "",
   });
@@ -140,18 +145,22 @@ export default function TaxTypesPage() {
     setFormData(
       type
         ? {
-            title: type.title ?? "",
+            titleEn: readLocalized(type.title, "en"),
+            titleBn: readLocalized(type.title, "bn"),
             rate: type.rate?.toString() ?? "",
             value: type.value ?? "income_tax",
-            description: type.description ?? "",
+            descriptionEn: readLocalized(type.description, "en"),
+            descriptionBn: readLocalized(type.description, "bn"),
             isActive: Boolean(type.isActive),
             icon: type.icon ?? "",
           }
         : {
-            title: "",
+            titleEn: "",
+            titleBn: "",
             rate: "",
             value: "income_tax",
-            description: "",
+            descriptionEn: "",
+            descriptionBn: "",
             isActive: true,
             icon: "",
           },
@@ -168,10 +177,10 @@ export default function TaxTypesPage() {
     }
 
     const payload = {
-      title: formData.title,
+      title: { en: formData.titleEn, bn: formData.titleBn },
       rate: parsedRate,
       value: formData.value,
-      description: formData.description,
+      description: { en: formData.descriptionEn, bn: formData.descriptionBn },
       isActive: formData.isActive,
       icon: formData.icon || undefined,
     };
@@ -228,14 +237,26 @@ export default function TaxTypesPage() {
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="title">Title</Label>
+                  <Label htmlFor="titleEn">Title (English)</Label>
                   <Input
-                    id="title"
-                    value={formData.title}
+                    id="titleEn"
+                    value={formData.titleEn}
                     onChange={(e) =>
-                      setFormData({ ...formData, title: e.target.value })
+                      setFormData({ ...formData, titleEn: e.target.value })
                     }
                     placeholder="e.g. Income Tax"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="titleBn">Title (বাংলা)</Label>
+                  <Input
+                    id="titleBn"
+                    value={formData.titleBn}
+                    onChange={(e) =>
+                      setFormData({ ...formData, titleBn: e.target.value })
+                    }
+                    placeholder="যেমন আয়কর"
                     required
                   />
                 </div>
@@ -275,14 +296,32 @@ export default function TaxTypesPage() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="descriptionEn">Description (English)</Label>
                   <Textarea
-                    id="description"
-                    value={formData.description}
+                    id="descriptionEn"
+                    value={formData.descriptionEn}
                     onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
+                      setFormData({
+                        ...formData,
+                        descriptionEn: e.target.value,
+                      })
                     }
                     placeholder="Add a short description"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="descriptionBn">Description (বাংলা)</Label>
+                  <Textarea
+                    id="descriptionBn"
+                    value={formData.descriptionBn}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        descriptionBn: e.target.value,
+                      })
+                    }
+                    placeholder="সংক্ষিপ্ত বিবরণ লিখুন"
                     required
                   />
                 </div>
@@ -383,7 +422,7 @@ export default function TaxTypesPage() {
                   taxTypes.map((type) => (
                     <TableRow key={type._id}>
                       <TableCell className="font-medium">
-                        {type.title}
+                        {readLocalized(type.title)}
                       </TableCell>
                       <TableCell>{formatTaxTypeLabel(type.value)}</TableCell>
                       <TableCell>{type.rate}%</TableCell>
@@ -393,7 +432,7 @@ export default function TaxTypesPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="max-w-sm truncate">
-                        {type.description}
+                        {readLocalized(type.description)}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">

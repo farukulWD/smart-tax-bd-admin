@@ -38,8 +38,16 @@ export const getTaxTypeLabel = (type: unknown) => {
   if (!type) return "Unknown";
   if (typeof type === "string") return type;
   if (typeof type === "object" && type !== null) {
-    const typed = type as { title?: string; value?: string; _id?: string };
-    return typed.title || typed.value || typed._id || "Unknown";
+    const typed = type as {
+      title?: string | { en?: string; bn?: string };
+      value?: string;
+      _id?: string;
+    };
+    const title =
+      typeof typed.title === "string"
+        ? typed.title
+        : (typed.title?.en ?? typed.title?.bn);
+    return title || typed.value || typed._id || "Unknown";
   }
 
   return "Unknown";
