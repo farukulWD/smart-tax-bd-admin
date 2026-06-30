@@ -4,6 +4,7 @@ import {
   useGetUsersQuery,
   useUpdateUserMutation,
 } from "@/redux/api/user/userApi";
+import { useGetMeQuery } from "@/redux/api/auth/authApi";
 
 import {
   Table,
@@ -40,6 +41,8 @@ import { toast } from "sonner";
 
 export default function UsersPage() {
   const { data, isLoading } = useGetUsersQuery();
+  const { data: meData } = useGetMeQuery();
+  const currentUser = meData?.data;
   const [updateUser] = useUpdateUserMutation();
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -61,6 +64,10 @@ export default function UsersPage() {
   ).length;
 
   const toggleStatus = async (user: any) => {
+    if (user.mobile === currentUser?.mobile) {
+      toast.error("You cannot block your own account");
+      return;
+    }
     try {
       const newStatus = user.status === "active" ? "blocked" : "active";
       await updateUser({
@@ -212,6 +219,7 @@ export default function UsersPage() {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
+                              disabled={user.mobile === currentUser?.mobile}
                               onClick={() => toggleStatus(user)}
                               className={
                                 user.status === "blocked"
