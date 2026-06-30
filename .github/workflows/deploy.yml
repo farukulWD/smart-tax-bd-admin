@@ -1,0 +1,80 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [release]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    environment: ${{ github.ref == 'refs/heads/release' && 'prod' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve environment name
+        id: env
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/release" ]; then
+            echo "NAME=prod" >> "$GITHUB_OUTPUT"
+          else
+            echo "NAME=dev" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ vars.DOCKERHUB_USERNAME }}/smart-tax-bd-admin:${{ steps.env.outputs.NAME }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
+
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1
+        env:
+          IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/smart-tax-bd-admin:${{ steps.env.outputs.NAME }}
+          DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          PORT: ${{ vars.PORT }}
+        with:
+          host: ${{ vars.SSH_HOST }}
+          username: ${{ vars.SSH_USER }}
+          port: ${{ vars.SSH_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: IMAGE,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN,PORT
+          script: |
+            set -e
+            mkdir -p /opt/smart-tax-bd/${{ steps.env.outputs.NAME }}/admin
+            cd /opt/smart-tax-bd/${{ steps.env.outputs.NAME }}/admin
+            echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+            cat > .env <<EOF
+            IMAGE=$IMAGE
+            PORT=$PORT
+            EOF
+            cat > docker-compose.yml <<'COMPOSE'
+            name: smart-tax-bd-admin-${{ steps.env.outputs.NAME }}
+            services:
+              app:
+                image: ${IMAGE}
+                restart: unless-stopped
+                environment:
+                  - NODE_ENV=production
+                  - PORT=3000
+                  - HOSTNAME=0.0.0.0
+                ports:
+                  - '127.0.0.1:${PORT}:3000'
+                networks: [app-net]
+            networks:
+              app-net:
+            COMPOSE
+            docker compose pull
+            docker compose up -d
+            docker image prune -f
