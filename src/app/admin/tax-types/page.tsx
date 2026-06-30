@@ -131,6 +131,20 @@ export default function TaxTypesPage() {
 
   const taxTypes = useMemo<TaxType[]>(() => data?.data ?? [], [data]);
 
+  const isUnchanged = useMemo(() => {
+    if (!editingType) return false;
+    return (
+      formData.titleEn === readLocalized(editingType.title, "en") &&
+      formData.titleBn === readLocalized(editingType.title, "bn") &&
+      formData.rate === (editingType.rate?.toString() ?? "") &&
+      formData.value === (editingType.value ?? "income_tax") &&
+      formData.descriptionEn === readLocalized(editingType.description, "en") &&
+      formData.descriptionBn === readLocalized(editingType.description, "bn") &&
+      formData.isActive === Boolean(editingType.isActive) &&
+      formData.icon === (editingType.icon ?? "")
+    );
+  }, [editingType, formData]);
+
   const averageRate = useMemo(() => {
     if (!taxTypes.length) return 0;
     const total = taxTypes.reduce(
@@ -348,7 +362,10 @@ export default function TaxTypesPage() {
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit" disabled={isCreating || isUpdating}>
+                <Button
+                  type="submit"
+                  disabled={isCreating || isUpdating || isUnchanged}
+                >
                   {editingType ? "Update" : "Create"}
                 </Button>
               </DialogFooter>
