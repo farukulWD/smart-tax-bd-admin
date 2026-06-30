@@ -101,8 +101,8 @@ const formatTaxTypeLabel = (value: string) =>
 
 export default function TaxTypesPage() {
   const { data, isLoading } = useGetAllTaxTypesQuery();
-  const [createTaxType] = useCreateTaxTypeMutation();
-  const [updateTaxType] = useUpdateTaxTypeMutation();
+  const [createTaxType, { isLoading: isCreating }] = useCreateTaxTypeMutation();
+  const [updateTaxType, { isLoading: isUpdating }] = useUpdateTaxTypeMutation();
   const [deleteTaxType, { isLoading: isDeleting }] =
     useDeleteTaxTypeMutation();
 
@@ -348,7 +348,7 @@ export default function TaxTypesPage() {
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit">
+                <Button type="submit" disabled={isCreating || isUpdating}>
                   {editingType ? "Update" : "Create"}
                 </Button>
               </DialogFooter>
