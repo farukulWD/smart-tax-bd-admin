@@ -32,6 +32,7 @@ export interface IOrder {
   income_from_partnership_firm: boolean;
   income_from_ldt_company: boolean;
   source_of_income: IncomeSource[];
+  tax_types?: string[];
   tax_year: string;
   documents?: Ifile[];
   files_upload_pending?: boolean;

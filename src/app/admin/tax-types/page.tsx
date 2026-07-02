@@ -61,7 +61,10 @@ type TaxTypeValue =
   | "service_tax"
   | "entertainment_tax"
   | "environmental_tax"
-  | "wealth_tax";
+  | "wealth_tax"
+  | "housewife_tax_return"
+  | "agriculture_tax_return"
+  | "non_resident_bangladeshis";
 
 type TaxType = {
   _id: string;
@@ -95,6 +98,9 @@ const TAX_TYPE_VALUES: TaxTypeValue[] = [
   "entertainment_tax",
   "environmental_tax",
   "wealth_tax",
+  "housewife_tax_return",
+  "agriculture_tax_return",
+  "non_resident_bangladeshis",
 ];
 
 const formatTaxTypeLabel = (value: string) =>

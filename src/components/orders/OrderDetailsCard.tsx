@@ -85,12 +85,64 @@ const INCOME_SOURCE_DOCUMENT_MAP: Record<string, string[]> = {
   "Income from Forign Remitance": ["Bank Statement"],
 };
 
+const BUSINESS_DOCUMENTS = [
+  "Trade License",
+  "Purchase Statement",
+  "Sales or Received Statement",
+  "Profit & Loss Statement",
+  "Balance Sheet",
+];
+
+const TAX_TYPE_DOCUMENT_MAP: Record<string, string[]> = {
+  income_tax: ["Salary Statement", "Tax Deduction Copy"],
+  income_tax_government: ["Salary Statement", "Tax Deduction Copy"],
+  income_tax_non_government: ["Salary Statement", "Tax Deduction Copy"],
+  business_tax: BUSINESS_DOCUMENTS,
+  sales_tax: BUSINESS_DOCUMENTS,
+  vat: BUSINESS_DOCUMENTS,
+  service_tax: BUSINESS_DOCUMENTS,
+  import_duty: BUSINESS_DOCUMENTS,
+  excise_duty: BUSINESS_DOCUMENTS,
+  customs_duty: BUSINESS_DOCUMENTS,
+  entertainment_tax: BUSINESS_DOCUMENTS,
+  environmental_tax: BUSINESS_DOCUMENTS,
+  house_rental_tax: ["Tax Token"],
+  property_tax: ["Tax Token"],
+  capital_gains_tax: [
+    "Land Purchase Documents",
+    "Flat Purchase Documents",
+    "Vehicle Purchase Documents",
+  ],
+  gift_tax: ["Others Documents"],
+  inheritance_tax: ["Others Documents"],
+  wealth_tax: [
+    "DPS Certificate",
+    "FDR Certificate",
+    "Sonchoypotro Certificate",
+    "Insurance Certificate",
+    "Share Certificate",
+    "Pension Scheme Certificate",
+  ],
+  housewife_tax_return: ["Others Documents"],
+  agriculture_tax_return: ["Others Documents"],
+  non_resident_bangladeshis: ["Bank Statement", "Others Documents"],
+};
+
+const formatTaxTypeLabel = (value: string) =>
+  value
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
 function getRequiredDocuments(order: IOrder): string[] {
   const required = new Set<string>(COMMON_REQUIRED_DOCUMENTS);
   (order.source_of_income || []).forEach((source) => {
     (INCOME_SOURCE_DOCUMENT_MAP[source as string] || []).forEach((doc) =>
       required.add(doc),
     );
+  });
+  (order.tax_types || []).forEach((type) => {
+    (TAX_TYPE_DOCUMENT_MAP[type] || []).forEach((doc) => required.add(doc));
   });
   if (order.are_you_get_notice_from_tax_office) {
     required.add("Notice from Income Tax Office");
@@ -340,22 +392,33 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
 
                 <div className="space-y-3">
                   <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-70">
-                    Declared Income Sources
+                    Tax Types & Income Sources
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {order.source_of_income?.length ? (
-                      order.source_of_income.map((type, index) => (
-                        <Badge
-                          key={`${type}-${index}`}
-                          variant="secondary"
-                          className="px-3 py-1 font-semibold text-[11px] bg-background"
-                        >
-                          {type}
-                        </Badge>
-                      ))
+                    {order.tax_types?.length || order.source_of_income?.length ? (
+                      <>
+                        {(order.tax_types || []).map((type, index) => (
+                          <Badge
+                            key={`tax-type-${type}-${index}`}
+                            variant="default"
+                            className="px-3 py-1 font-semibold text-[11px]"
+                          >
+                            {formatTaxTypeLabel(type)}
+                          </Badge>
+                        ))}
+                        {(order.source_of_income || []).map((type, index) => (
+                          <Badge
+                            key={`${type}-${index}`}
+                            variant="secondary"
+                            className="px-3 py-1 font-semibold text-[11px] bg-background"
+                          >
+                            {type}
+                          </Badge>
+                        ))}
+                      </>
                     ) : (
                       <span className="text-sm italic text-muted-foreground font-medium">
-                        No income sources declared
+                        No tax types or income sources declared
                       </span>
                     )}
                   </div>
