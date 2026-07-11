@@ -21,7 +21,7 @@ function OrderDetailsPage() {
 
   if (isFetching) {
     return (
-      <div className="flex min-h-[400px] flex-col items-center justify-center gap-4 py-20 animate-in fade-in transition-all">
+      <div className="flex min-h-100 flex-col items-center justify-center gap-4 py-20 animate-in fade-in transition-all">
         <Loader2 className="h-12 w-12 animate-spin text-primary opacity-50" />
         <p className="text-xl font-medium text-muted-foreground">
           Loading order information...
@@ -32,7 +32,7 @@ function OrderDetailsPage() {
 
   if (!tax_order) {
     return (
-      <div className="flex h-[400px] flex-col items-center justify-center gap-6 text-center py-20">
+      <div className="flex h-100 flex-col items-center justify-center gap-6 text-center py-20">
         <div className="rounded-full bg-destructive/10 p-6 text-destructive ring-8 ring-destructive/5">
           <ArrowLeft className="h-10 w-10" />
         </div>

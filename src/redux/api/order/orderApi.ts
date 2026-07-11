@@ -148,6 +148,28 @@ const orderApi = baseApi.injectEndpoints({
       }),
       providesTags: ["payments"],
     }),
+    recordCashPayment: builder.mutation<
+      TResponse<any>,
+      {
+        orderId: string;
+        paymentFor:
+          | "fee_amount"
+          | "fee_due_amount"
+          | "tax_payable_amount"
+          | "remaining_all_amount";
+      }
+    >({
+      query: (data) => ({
+        url: "/payments/record-cash",
+        method: "POST",
+        data,
+      }),
+      invalidatesTags: (result, error, { orderId }) => [
+        "orders",
+        { type: "orders", id: orderId },
+        "payments",
+      ],
+    }),
     adminUploadDocumentForUser: builder.mutation<
       TResponse<{ file: Ifile; files_upload_pending: boolean; missing_documents: string[] }>,
       { taxId: string; formData: FormData }
@@ -176,4 +198,5 @@ export const {
   usePaymentsByOrderIdQuery,
   useGetAllPaymentsQuery,
   useAdminUploadDocumentForUserMutation,
+  useRecordCashPaymentMutation,
 } = orderApi;
