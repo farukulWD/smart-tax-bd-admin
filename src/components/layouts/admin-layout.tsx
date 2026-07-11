@@ -21,6 +21,7 @@ import {
   Newspaper,
   BookOpen,
   Bell,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,7 @@ const navItems = [
   { name: "Files", href: "/admin/files", icon: Files },
   { name: "News", href: "/admin/news", icon: Newspaper },
   { name: "Blogs", href: "/admin/blogs", icon: BookOpen },
+  { name: "Reviews", href: "/admin/reviews", icon: Star },
   { name: "Notifications", href: "/admin/notifications", icon: Bell },
   { name: "Profile", href: "/admin/profile", icon: UserCircle2 },
   { name: "Settings", href: "/admin/settings", icon: Settings },
