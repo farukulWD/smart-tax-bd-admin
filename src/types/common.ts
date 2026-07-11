@@ -10,5 +10,6 @@ export type TResponse<T> = {
   success: boolean;
   message?: string;
   pagination?: TPagination;
+  meta?: TPagination;
   data: T;
 };
