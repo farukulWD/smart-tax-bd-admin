@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import {
   useUpdateTaxOrderMutation,
   useAdminUploadDocumentForUserMutation,
+  useRecordCashPaymentMutation,
 } from "@/redux/api/order/orderApi";
 import { useUploadFileMutation } from "@/redux/api/file/fileApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,6 +41,7 @@ import {
   DollarSign,
   Upload,
   AlertTriangle,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ORDER_STATUS_OPTIONS, OrderStatus } from "./helper";
@@ -165,6 +167,9 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
     useUpdateTaxOrderMutation();
   const [uploadFile, { isLoading: isUploading }] = useUploadFileMutation();
   const [adminUploadDocumentForUser] = useAdminUploadDocumentForUserMutation();
+  const [recordCashPayment, { isLoading: isRecordingCash }] =
+    useRecordCashPaymentMutation();
+  const [cashPaymentFor, setCashPaymentFor] = useState<string>("");
   const [pendingDocFiles, setPendingDocFiles] = useState<
     Record<string, File | null>
   >({});
@@ -196,6 +201,16 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
   const selectedAmount = draftUpdates.tax_payable_amount;
   const selectedFeeDueAmount = draftUpdates.fee_due_amount;
 
+  const normalizedOrderStatus = (() => {
+    const normalized = (order.status || "pending").toLowerCase();
+    return isOrderStatus(normalized) ? normalized : "pending";
+  })();
+
+  const hasUnsavedChanges =
+    selectedStatus !== normalizedOrderStatus ||
+    Number(selectedFeeDueAmount) !== (order.fee_due_amount ?? 0) ||
+    Number(selectedAmount) !== (order.tax_payable_amount ?? 0);
+
   const handleSaveDetails = async () => {
     if (!order._id) return;
 
@@ -205,17 +220,90 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
       return;
     }
 
-    try {
-      await updateTaxOrder({
-        id: order._id,
-        data: {
-          status: selectedStatus,
-          tax_payable_amount: parsedAmount,
-          fee_due_amount: Number(draftUpdates.fee_due_amount),
-        },
-      }).unwrap();
+    // Send only what actually changed. Paid amounts are locked, so they are
+    // never included — this lets the admin edit the status on its own.
+    const data: {
+      status?: OrderStatus;
+      tax_payable_amount?: number;
+      fee_due_amount?: number;
+    } = {};
 
+    if (selectedStatus !== normalizedOrderStatus) {
+      data.status = selectedStatus;
+    }
+    if (
+      !order.is_tax_payable_amount_paid &&
+      parsedAmount !== (order.tax_payable_amount ?? 0)
+    ) {
+      data.tax_payable_amount = parsedAmount;
+    }
+    if (
+      !order.is_fee_due_amount_paid &&
+      Number(selectedFeeDueAmount) !== (order.fee_due_amount ?? 0)
+    ) {
+      data.fee_due_amount = Number(selectedFeeDueAmount);
+    }
+
+    if (Object.keys(data).length === 0) {
+      toast.info("No changes to save");
+      return;
+    }
+
+    try {
+      await updateTaxOrder({ id: order._id, data }).unwrap();
       toast.success("Order details updated successfully");
+    } catch (error) {
+      globalErrorHandler(error);
+    }
+  };
+
+  const remainingAllAmount =
+    (order.fee_due_amount ?? 0) + (order.tax_payable_amount ?? 0);
+
+  const cashPaymentOptions = [
+    {
+      value: "fee_amount",
+      label: `Service Fee (৳${order.fee_amount ?? 0})`,
+      available: !order.is_fee_amount_paid && (order.fee_amount ?? 0) > 0,
+    },
+    {
+      value: "fee_due_amount",
+      label: `Fee Due (৳${order.fee_due_amount ?? 0})`,
+      available: !order.is_fee_due_amount_paid && (order.fee_due_amount ?? 0) > 0,
+    },
+    {
+      value: "tax_payable_amount",
+      label: `Tax Payable (৳${order.tax_payable_amount ?? 0})`,
+      available:
+        !order.is_tax_payable_amount_paid &&
+        (order.tax_payable_amount ?? 0) > 0,
+    },
+    {
+      value: "remaining_all_amount",
+      label: `Remaining All (৳${remainingAllAmount})`,
+      available:
+        !order.is_tax_payable_amount_paid &&
+        !order.is_fee_due_amount_paid &&
+        remainingAllAmount > 0,
+    },
+  ].filter((option) => option.available);
+
+  const handleRecordCashPayment = async () => {
+    if (!order._id || !cashPaymentFor) {
+      toast.error("Please select what the payment is for");
+      return;
+    }
+    try {
+      await recordCashPayment({
+        orderId: order._id,
+        paymentFor: cashPaymentFor as
+          | "fee_amount"
+          | "fee_due_amount"
+          | "tax_payable_amount"
+          | "remaining_all_amount",
+      }).unwrap();
+      toast.success("Cash payment recorded successfully");
+      setCashPaymentFor("");
     } catch (error) {
       globalErrorHandler(error);
     }
@@ -395,7 +483,8 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
                     Tax Types & Income Sources
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {order.tax_types?.length || order.source_of_income?.length ? (
+                    {order.tax_types?.length ||
+                    order.source_of_income?.length ? (
                       <>
                         {(order.tax_types || []).map((type, index) => (
                           <Badge
@@ -464,6 +553,78 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
               </div>
             </section>
             <section>
+              {" "}
+              <div className="space-y-4 rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-6">
+                <div className="flex items-center gap-2">
+                  <Wallet className="h-5 w-5 text-primary" />
+                  <p className="text-sm font-black uppercase tracking-widest text-foreground">
+                    Record Cash Payment
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Mark an amount as received in person / cash. This creates a
+                  completed payment and updates the paid status.
+                </p>
+                {cashPaymentOptions.length === 0 ? (
+                  <div className="flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400">
+                    <CheckCircle2 className="h-5 w-5" />
+                    All payable amounts are received. Nothing left to record.
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="cash_payment_for"
+                        className="text-xs font-black uppercase tracking-widest text-muted-foreground"
+                      >
+                        Payment For
+                      </Label>
+                      <Select
+                        value={cashPaymentFor}
+                        onValueChange={setCashPaymentFor}
+                      >
+                        <SelectTrigger
+                          id="cash_payment_for"
+                          className="h-14 w-full bg-background border-muted text-base font-bold"
+                        >
+                          <SelectValue placeholder="Select payment bucket" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {cashPaymentOptions.map((option) => (
+                            <SelectItem
+                              key={option.value}
+                              value={option.value}
+                              className="font-medium"
+                            >
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="h-12 w-full font-bold"
+                      onClick={handleRecordCashPayment}
+                      disabled={isRecordingCash || !cashPaymentFor}
+                    >
+                      {isRecordingCash ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Recording...
+                        </>
+                      ) : (
+                        <>
+                          <Wallet className="mr-2 h-5 w-5" />
+                          Record Cash Payment
+                        </>
+                      )}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </section>
+            <section>
               <h3 className="mb-5 flex items-center text-xl font-bold text-foreground">
                 <History className="mr-3 h-5 w-5 text-primary" />
                 Internal System Data
@@ -471,51 +632,12 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
               <div className="grid grid-cols-2 gap-4 rounded-2xl bg-muted/20 p-6 shadow-inner ring-1 ring-black/5">
                 <div className="space-y-1.5 p-3 rounded-xl bg-background shadow-sm border border-muted/20">
                   <p className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">
-                    Tax Office Notice
-                  </p>
-                  <p className="flex items-center text-sm font-black text-foreground">
-                    {order.are_you_get_notice_from_tax_office ? (
-                      <CheckCircle2 className="mr-1.5 h-4 w-4 text-emerald-500" />
-                    ) : (
-                      <XCircle className="mr-1.5 h-4 w-4 text-red-500" />
-                    )}
-                    {order.are_you_get_notice_from_tax_office ? "YES" : "NO"}
-                  </p>
-                </div>
-                <div className="space-y-1.5 p-3 rounded-xl bg-background shadow-sm border border-muted/20">
-                  <p className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">
-                    LTD Co. Income
-                  </p>
-                  <p className="flex items-center text-sm font-black text-foreground">
-                    {order.income_from_ldt_company ? (
-                      <CheckCircle2 className="mr-1.5 h-4 w-4 text-emerald-500" />
-                    ) : (
-                      <XCircle className="mr-1.5 h-4 w-4 text-red-500" />
-                    )}
-                    {order.income_from_ldt_company ? "YES" : "NO"}
-                  </p>
-                </div>
-                <div className="space-y-1.5 p-3 rounded-xl bg-background shadow-sm border border-muted/20">
-                  <p className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">
-                    Partnership Income
-                  </p>
-                  <p className="flex items-center text-sm font-black text-foreground">
-                    {order.income_from_partnership_firm ? (
-                      <CheckCircle2 className="mr-1.5 h-4 w-4 text-emerald-500" />
-                    ) : (
-                      <XCircle className="mr-1.5 h-4 w-4 text-red-500" />
-                    )}
-                    {order.income_from_partnership_firm ? "YES" : "NO"}
-                  </p>
-                </div>
-                <div className="space-y-1.5 p-3 rounded-xl bg-background shadow-sm border border-muted/20">
-                  <p className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">
                     Submission Date
                   </p>
                   <p className="flex items-center text-sm font-black text-foreground">
                     <Calendar className="mr-1.5 h-4 w-4 text-primary opacity-70" />
-                    {order.createdAt
-                      ? new Date(order.createdAt).toLocaleDateString()
+                    {order?.createdAt
+                      ? new Date(order?.createdAt)?.toLocaleDateString()
                       : "N/A"}
                   </p>
                 </div>
@@ -638,12 +760,18 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
                       className="text-xs font-black uppercase tracking-widest text-muted-foreground"
                     >
                       Add Fee Due Amount (৳)
+                      {order.is_fee_due_amount_paid && (
+                        <span className="ml-2 text-emerald-600">
+                          (already paid)
+                        </span>
+                      )}
                     </Label>
                     <Input
                       id="fee_due_amount"
                       type="number"
                       min={0}
-                      className="h-14 bg-muted/10 border-muted text-lg font-black"
+                      disabled={order.is_fee_due_amount_paid}
+                      className="h-14 bg-muted/10 border-muted text-lg font-black disabled:cursor-not-allowed disabled:opacity-60"
                       value={selectedFeeDueAmount}
                       onChange={(event) =>
                         setDraftUpdates((previous) => ({
@@ -662,12 +790,18 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
                       className="text-xs font-black uppercase tracking-widest text-muted-foreground"
                     >
                       Add Tax Payable Amount (৳)
+                      {order.is_tax_payable_amount_paid && (
+                        <span className="ml-2 text-emerald-600">
+                          (already paid)
+                        </span>
+                      )}
                     </Label>
                     <Input
                       id="tax_payable_amount"
                       type="number"
                       min={0}
-                      className="h-14 bg-muted/10 border-muted text-lg font-black"
+                      disabled={order.is_tax_payable_amount_paid}
+                      className="h-14 bg-muted/10 border-muted text-lg font-black disabled:cursor-not-allowed disabled:opacity-60"
                       value={selectedAmount}
                       onChange={(event) =>
                         setDraftUpdates((previous) => ({
@@ -685,7 +819,7 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
                 <Button
                   className="h-14 w-full text-lg font-black tracking-wide shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   onClick={handleSaveDetails}
-                  disabled={isUpdatingOrder}
+                  disabled={isUpdatingOrder || !hasUnsavedChanges}
                 >
                   {isUpdatingOrder ? (
                     <>
