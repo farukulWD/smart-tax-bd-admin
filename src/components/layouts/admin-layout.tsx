@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   CreditCard,
   Newspaper,
+  BookOpen,
   Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ const navItems = [
   { name: "Tax Types", href: "/admin/tax-types", icon: Calculator },
   { name: "Files", href: "/admin/files", icon: Files },
   { name: "News", href: "/admin/news", icon: Newspaper },
+  { name: "Blogs", href: "/admin/blogs", icon: BookOpen },
   { name: "Notifications", href: "/admin/notifications", icon: Bell },
   { name: "Profile", href: "/admin/profile", icon: UserCircle2 },
   { name: "Settings", href: "/admin/settings", icon: Settings },
