@@ -23,6 +23,7 @@ import {
   Bell,
   Star,
   HelpCircle,
+  ListChecks,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,7 @@ const navItems = [
   { name: "Blogs", href: "/admin/blogs", icon: BookOpen },
   { name: "Reviews", href: "/admin/reviews", icon: Star },
   { name: "FAQs", href: "/admin/faqs", icon: HelpCircle },
+  { name: "How It Works", href: "/admin/how-it-works", icon: ListChecks },
   { name: "Notifications", href: "/admin/notifications", icon: Bell },
   { name: "Profile", href: "/admin/profile", icon: UserCircle2 },
   { name: "Settings", href: "/admin/settings", icon: Settings },
