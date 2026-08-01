@@ -16,8 +16,16 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, Edit, Calculator, HandCoins } from "lucide-react";
-import { useMemo, useState } from "react";
+import {
+  Plus,
+  Trash2,
+  Edit,
+  Calculator,
+  HandCoins,
+  ImageIcon,
+} from "lucide-react";
+import Image from "next/image";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -103,6 +111,10 @@ const TAX_TYPE_VALUES: TaxTypeValue[] = [
   "non_resident_bangladeshis",
 ];
 
+// `icon` used to hold a lucide icon name; it now holds an uploaded image URL.
+// Legacy rows are still rendered as plain text so they can be spotted and replaced.
+const isIconUrl = (icon?: string) => !!icon && /^https?:\/\//.test(icon);
+
 const formatTaxTypeLabel = (value: string) =>
   value
     .split("_")
@@ -127,7 +139,6 @@ export default function TaxTypesPage() {
     descriptionEn: string;
     descriptionBn: string;
     isActive: boolean;
-    icon: string;
   }>({
     titleEn: "",
     titleBn: "",
@@ -136,13 +147,16 @@ export default function TaxTypesPage() {
     descriptionEn: "",
     descriptionBn: "",
     isActive: true,
-    icon: "",
   });
+  const [iconFile, setIconFile] = useState<File | null>(null);
+  const [iconPreview, setIconPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const taxTypes = useMemo<TaxType[]>(() => data?.data ?? [], [data]);
 
   const isUnchanged = useMemo(() => {
     if (!editingType) return false;
+    if (iconFile) return false;
     return (
       formData.titleEn === readLocalized(editingType.title, "en") &&
       formData.titleBn === readLocalized(editingType.title, "bn") &&
@@ -150,10 +164,9 @@ export default function TaxTypesPage() {
       formData.value === (editingType.value ?? "income_tax") &&
       formData.descriptionEn === readLocalized(editingType.description, "en") &&
       formData.descriptionBn === readLocalized(editingType.description, "bn") &&
-      formData.isActive === Boolean(editingType.isActive) &&
-      formData.icon === (editingType.icon ?? "")
+      formData.isActive === Boolean(editingType.isActive)
     );
-  }, [editingType, formData]);
+  }, [editingType, formData, iconFile]);
 
   const averageRate = useMemo(() => {
     if (!taxTypes.length) return 0;
@@ -176,7 +189,6 @@ export default function TaxTypesPage() {
             descriptionEn: readLocalized(type.description, "en"),
             descriptionBn: readLocalized(type.description, "bn"),
             isActive: Boolean(type.isActive),
-            icon: type.icon ?? "",
           }
         : {
             titleEn: "",
@@ -186,10 +198,24 @@ export default function TaxTypesPage() {
             descriptionEn: "",
             descriptionBn: "",
             isActive: true,
-            icon: "",
           },
     );
+    setIconFile(null);
+    setIconPreview(isIconUrl(type?.icon) ? (type?.icon ?? null) : null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
     setIsModalOpen(true);
+  };
+
+  const handleIconChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setIconFile(file);
+    if (file) {
+      setIconPreview(URL.createObjectURL(file));
+    } else {
+      setIconPreview(
+        isIconUrl(editingType?.icon) ? (editingType?.icon ?? null) : null,
+      );
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -206,20 +232,24 @@ export default function TaxTypesPage() {
       value: formData.value,
       description: { en: formData.descriptionEn, bn: formData.descriptionBn },
       isActive: formData.isActive,
-      icon: formData.icon || undefined,
     };
+
+    const fd = new FormData();
+    fd.append("data", JSON.stringify(payload));
+    if (iconFile) fd.append("icon", iconFile);
 
     try {
       if (editingType) {
-        await updateTaxType({ id: editingType._id!, data: payload }).unwrap();
+        await updateTaxType({ id: editingType._id!, data: fd }).unwrap();
         toast.success("Tax type updated successfully");
       } else {
-        await createTaxType(payload).unwrap();
+        await createTaxType(fd).unwrap();
         toast.success("Tax type created successfully");
       }
       setIsModalOpen(false);
-    } catch {
-      toast.error("Operation failed");
+    } catch (error) {
+      const message = (error as { data?: { message?: string } })?.data?.message;
+      toast.error(message || "Operation failed");
     }
   };
 
@@ -353,12 +383,32 @@ export default function TaxTypesPage() {
                   <Label htmlFor="icon">Icon (optional)</Label>
                   <Input
                     id="icon"
-                    value={formData.icon}
-                    onChange={(e) =>
-                      setFormData({ ...formData, icon: e.target.value })
-                    }
-                    placeholder="calculator"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    ref={fileInputRef}
+                    onChange={handleIconChange}
                   />
+                  {iconPreview ? (
+                    <div className="relative mt-1 h-16 w-16 overflow-hidden rounded-md border border-border bg-muted">
+                      <Image
+                        src={iconPreview}
+                        alt="Icon preview"
+                        fill
+                        unoptimized
+                        className="object-contain p-1"
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Square image, at least 128×128. PNG, JPEG or WebP.
+                    </p>
+                  )}
+                  {isIconUrl(editingType?.icon) && !iconFile && (
+                    <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <ImageIcon className="h-3 w-3" />
+                      Existing icon will be kept unless replaced.
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center justify-between rounded-md border p-3">
                   <Label htmlFor="isActive">Active</Label>
@@ -418,6 +468,7 @@ export default function TaxTypesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-16">Icon</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>Value</TableHead>
                   <TableHead>Rate</TableHead>
@@ -430,7 +481,7 @@ export default function TaxTypesPage() {
                 {isLoading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="h-24 text-center text-muted-foreground"
                     >
                       Loading tax types...
@@ -439,7 +490,7 @@ export default function TaxTypesPage() {
                 ) : taxTypes.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="h-24 text-center text-muted-foreground"
                     >
                       No tax types found.
@@ -448,6 +499,25 @@ export default function TaxTypesPage() {
                 ) : (
                   taxTypes.map((type) => (
                     <TableRow key={type._id}>
+                      <TableCell>
+                        {isIconUrl(type.icon) ? (
+                          <div className="relative h-9 w-9 overflow-hidden rounded-md border border-border bg-muted">
+                            <Image
+                              src={type.icon!}
+                              alt={readLocalized(type.title)}
+                              fill
+                              unoptimized
+                              className="object-contain p-0.5"
+                            />
+                          </div>
+                        ) : type.icon ? (
+                          <span className="text-xs text-muted-foreground">
+                            {type.icon}
+                          </span>
+                        ) : (
+                          <ImageIcon className="h-4 w-4 text-muted-foreground/50" />
+                        )}
+                      </TableCell>
                       <TableCell className="font-medium">
                         {readLocalized(type.title)}
                       </TableCell>
