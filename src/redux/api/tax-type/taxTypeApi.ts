@@ -3,7 +3,7 @@ import { baseApi } from "../baseApi";
 
 const taxTypeApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    createTaxType: builder.mutation<TResponse<any>, any>({
+    createTaxType: builder.mutation<TResponse<any>, FormData>({
       query: (data) => ({
         url: "/tax-types/create-tax-type",
         method: "POST",
@@ -18,7 +18,10 @@ const taxTypeApi = baseApi.injectEndpoints({
       }),
       providesTags: ["taxTypes"],
     }),
-    updateTaxType: builder.mutation<TResponse<any>, { id: string; data: any }>({
+    updateTaxType: builder.mutation<
+      TResponse<any>,
+      { id: string; data: FormData }
+    >({
       query: ({ id, data }) => ({
         url: `/tax-types/update-tax-type/${id}`,
         method: "PATCH",
