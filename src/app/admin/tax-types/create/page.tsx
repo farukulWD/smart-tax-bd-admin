@@ -7,7 +7,7 @@ import { TaxTypeForm } from "@/components/tax-type/tax-type-form";
 
 export default function CreateTaxTypePage() {
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="space-y-6">
       <section className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/admin/tax-types">

@@ -119,7 +119,6 @@ export default function TaxTypesPage() {
                   <TableHead>Value</TableHead>
                   <TableHead>Rate</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Description</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -127,7 +126,7 @@ export default function TaxTypesPage() {
                 {isLoading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={7}
+                      colSpan={6}
                       className="h-24 text-center text-muted-foreground"
                     >
                       Loading tax types...
@@ -136,7 +135,7 @@ export default function TaxTypesPage() {
                 ) : taxTypes.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={7}
+                      colSpan={6}
                       className="h-24 text-center text-muted-foreground"
                     >
                       No tax types found.
@@ -173,9 +172,6 @@ export default function TaxTypesPage() {
                         <Badge variant={type.isActive ? "default" : "outline"}>
                           {type.isActive ? "Active" : "Inactive"}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="max-w-sm truncate">
-                        {readLocalized(type.description)}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
