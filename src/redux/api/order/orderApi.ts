@@ -52,6 +52,11 @@ export interface IOrder {
 export interface ISingleOrder {
   tax_order: IOrder;
   required_documents: string[];
+  /**
+   * Every file stored against the order, newest first. Authoritative — read
+   * from the `files` collection, unlike `tax_order.documents` which is a cache.
+   */
+  uploaded_files?: Ifile[];
 }
 
 export interface IPayment {

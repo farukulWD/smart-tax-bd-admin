@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 import {
   useUpdateTaxOrderMutation,
-  useAdminUploadDocumentForUserMutation,
   useRecordCashPaymentMutation,
 } from "@/redux/api/order/orderApi";
 import { useUploadFileMutation } from "@/redux/api/file/fileApi";
@@ -35,12 +34,10 @@ import {
   FileText,
   Activity,
   CheckCircle2,
-  XCircle,
   Briefcase,
   History,
   DollarSign,
   Upload,
-  AlertTriangle,
   Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -49,86 +46,11 @@ import { globalErrorHandler } from "@/helpers/globalErrorHandler";
 import { IOrder } from "@/redux/api/order/orderApi";
 import StatusBadge from "./status-badge";
 import PaymentStatusBadge from "./payment-status-badge";
+import RequiredDocumentsSection from "./RequiredDocumentsSection";
+import { Ifile } from "@/redux/api/file/fileApi";
 import Link from "next/link";
 
 const ADMIN_FILE_TYPES = ["Acknowledgement", "Tax Certificate"] as const;
-
-const COMMON_REQUIRED_DOCUMENTS = [
-  "TIN Certificate",
-  "NID Copy",
-  "Bank Statement",
-];
-const INCOME_SOURCE_DOCUMENT_MAP: Record<string, string[]> = {
-  "Income from Govt.Job": ["Salary Statement", "Tax Deduction Copy"],
-  "Income from Private Job": ["Salary Statement", "Tax Deduction Copy"],
-  "Income from Business": [
-    "Trade License",
-    "Purchase Statement",
-    "Sales or Received Statement",
-    "Profit & Loss Statement",
-    "Balance Sheet",
-  ],
-  "Income from Rent": ["Tax Token"],
-  "Income from Agriculture": ["Others Documents"],
-  "Income from Financial Asset": [
-    "DPS Certificate",
-    "FDR Certificate",
-    "Sonchoypotro Certificate",
-    "Insurance Certificate",
-    "Share Certificate",
-    "Pension Scheme Certificate",
-  ],
-  "Income from Capital Gain": [
-    "Land Purchase Documents",
-    "Flat Purchase Documents",
-    "Vehicle Purchase Documents",
-  ],
-  "Income from others Source": ["Others Documents"],
-  "Income from Forign Remitance": ["Bank Statement"],
-};
-
-const BUSINESS_DOCUMENTS = [
-  "Trade License",
-  "Purchase Statement",
-  "Sales or Received Statement",
-  "Profit & Loss Statement",
-  "Balance Sheet",
-];
-
-const TAX_TYPE_DOCUMENT_MAP: Record<string, string[]> = {
-  income_tax: ["Salary Statement", "Tax Deduction Copy"],
-  income_tax_government: ["Salary Statement", "Tax Deduction Copy"],
-  income_tax_non_government: ["Salary Statement", "Tax Deduction Copy"],
-  business_tax: BUSINESS_DOCUMENTS,
-  sales_tax: BUSINESS_DOCUMENTS,
-  vat: BUSINESS_DOCUMENTS,
-  service_tax: BUSINESS_DOCUMENTS,
-  import_duty: BUSINESS_DOCUMENTS,
-  excise_duty: BUSINESS_DOCUMENTS,
-  customs_duty: BUSINESS_DOCUMENTS,
-  entertainment_tax: BUSINESS_DOCUMENTS,
-  environmental_tax: BUSINESS_DOCUMENTS,
-  house_rental_tax: ["Tax Token"],
-  property_tax: ["Tax Token"],
-  capital_gains_tax: [
-    "Land Purchase Documents",
-    "Flat Purchase Documents",
-    "Vehicle Purchase Documents",
-  ],
-  gift_tax: ["Others Documents"],
-  inheritance_tax: ["Others Documents"],
-  wealth_tax: [
-    "DPS Certificate",
-    "FDR Certificate",
-    "Sonchoypotro Certificate",
-    "Insurance Certificate",
-    "Share Certificate",
-    "Pension Scheme Certificate",
-  ],
-  housewife_tax_return: ["Others Documents"],
-  agriculture_tax_return: ["Others Documents"],
-  non_resident_bangladeshis: ["Bank Statement", "Others Documents"],
-};
 
 const formatTaxTypeLabel = (value: string) =>
   value
@@ -136,44 +58,35 @@ const formatTaxTypeLabel = (value: string) =>
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 
-function getRequiredDocuments(order: IOrder): string[] {
-  const required = new Set<string>(COMMON_REQUIRED_DOCUMENTS);
-  (order.source_of_income || []).forEach((source) => {
-    (INCOME_SOURCE_DOCUMENT_MAP[source as string] || []).forEach((doc) =>
-      required.add(doc),
-    );
-  });
-  (order.tax_types || []).forEach((type) => {
-    (TAX_TYPE_DOCUMENT_MAP[type] || []).forEach((doc) => required.add(doc));
-  });
-  if (order.are_you_get_notice_from_tax_office) {
-    required.add("Notice from Income Tax Office");
-  }
-  if (order.income_from_partnership_firm || order.income_from_ldt_company) {
-    required.add("Balance Sheet");
-  }
-  return Array.from(required);
-}
-
 interface OrderDetailsCardProps {
   order: IOrder;
+  /**
+   * Resolved server-side from the admin-managed catalog. Never recompute it
+   * here — the tax type / income source / file name mapping lives in the DB
+   * now, so a local copy would silently drift from what users actually see.
+   */
+  requiredDocuments: string[];
+  /**
+   * Every file stored against this order, newest first. Comes from the `files`
+   * collection — `order.documents` is a cache and can lag behind.
+   */
+  uploadedFiles: Ifile[];
 }
 
 const isOrderStatus = (value: string): value is OrderStatus =>
   ORDER_STATUS_OPTIONS.includes(value as OrderStatus);
 
-export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
+export const OrderDetailsCard = ({
+  order,
+  requiredDocuments,
+  uploadedFiles,
+}: OrderDetailsCardProps) => {
   const [updateTaxOrder, { isLoading: isUpdatingOrder }] =
     useUpdateTaxOrderMutation();
   const [uploadFile, { isLoading: isUploading }] = useUploadFileMutation();
-  const [adminUploadDocumentForUser] = useAdminUploadDocumentForUserMutation();
   const [recordCashPayment, { isLoading: isRecordingCash }] =
     useRecordCashPaymentMutation();
   const [cashPaymentFor, setCashPaymentFor] = useState<string>("");
-  const [pendingDocFiles, setPendingDocFiles] = useState<
-    Record<string, File | null>
-  >({});
-  const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -335,32 +248,6 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
       globalErrorHandler(error);
-    }
-  };
-
-  const requiredDocuments = getRequiredDocuments(order);
-  const uploadedByType = new Map(
-    (order.documents || []).map((doc) => [doc.type, doc]),
-  );
-
-  const handleAdminDocUpload = async (docType: string) => {
-    const file = pendingDocFiles[docType];
-    if (!file || !order._id) return;
-    setUploadingDoc(docType);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("type", docType);
-      await adminUploadDocumentForUser({
-        taxId: order._id,
-        formData,
-      }).unwrap();
-      toast.success(`${docType} uploaded successfully`);
-      setPendingDocFiles((prev) => ({ ...prev, [docType]: null }));
-    } catch (error) {
-      globalErrorHandler(error);
-    } finally {
-      setUploadingDoc(null);
     }
   };
 
@@ -647,69 +534,13 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
 
           {/* Right Column: Decisions & Details */}
           <div className="space-y-10">
-            {/* Files Upload Missing Banner */}
-            {order.files_upload_pending && (
-              <section className="rounded-2xl border-2 border-amber-400 bg-amber-50 p-6 dark:border-amber-500/40 dark:bg-amber-500/10">
-                <h3 className="mb-2 flex items-center gap-2 text-lg font-bold text-amber-700 dark:text-amber-400">
-                  <AlertTriangle className="h-5 w-5" />
-                  Files Upload Missing
-                </h3>
-                <p className="mb-4 text-sm text-amber-600 dark:text-amber-300/80">
-                  Client chose to upload files later. Upload required documents
-                  below on their behalf.
-                </p>
-                <div className="space-y-2">
-                  {requiredDocuments.map((doc) => {
-                    const uploaded = uploadedByType.get(doc);
-                    const isUploadingThis = uploadingDoc === doc;
-                    return (
-                      <div
-                        key={doc}
-                        className="flex items-center gap-3 rounded-xl border border-amber-200 bg-white p-3 dark:border-amber-500/20 dark:bg-background"
-                      >
-                        <p className="flex-1 truncate text-sm font-semibold text-foreground">
-                          {doc}
-                        </p>
-                        {uploaded ? (
-                          <Badge className="shrink-0 border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-400">
-                            <CheckCircle2 className="mr-1 h-3 w-3" />
-                            Uploaded
-                          </Badge>
-                        ) : (
-                          <div className="flex shrink-0 items-center gap-2">
-                            <Input
-                              type="file"
-                              accept="image/*,application/pdf"
-                              className="h-8 w-36 cursor-pointer text-xs file:cursor-pointer"
-                              onChange={(e) =>
-                                setPendingDocFiles((prev) => ({
-                                  ...prev,
-                                  [doc]: e.target.files?.[0] ?? null,
-                                }))
-                              }
-                            />
-                            <Button
-                              size="sm"
-                              className="h-8"
-                              disabled={
-                                !pendingDocFiles[doc] || isUploadingThis
-                              }
-                              onClick={() => handleAdminDocUpload(doc)}
-                            >
-                              {isUploadingThis ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                "Upload"
-                              )}
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
+            {/* Required documents — always visible, uploaded files included */}
+            <RequiredDocumentsSection
+              orderId={order._id as string}
+              requiredDocuments={requiredDocuments}
+              uploadedFiles={uploadedFiles}
+              filesUploadPending={order.files_upload_pending}
+            />
 
             {/* Administration Tools */}
             <section>
@@ -836,33 +667,6 @@ export const OrderDetailsCard = ({ order }: OrderDetailsCardProps) => {
               </div>
             </section>
 
-            {/* Additional Attributes Block */}
-            {order.documents && order.documents.length > 0 && (
-              <div className="w-full">
-                <h3 className="mb-6 flex items-center text-xl font-bold text-foreground">
-                  <FileText className="mr-3 h-5 w-5 text-primary" />
-                  Submitted Documentation
-                </h3>
-                <div className="flex flex-wrap gap-4">
-                  {order.documents.map((doc) => (
-                    <Link
-                      href={`/admin/files/${doc?._id}`}
-                      key={doc?._id}
-                      className="group flex flex-col items-center w-37.5 gap-3 rounded-2xl border bg-background p-4 text-center transition-all hover:border-primary hover:shadow-xl hover:-translate-y-1 active:scale-95"
-                    >
-                      <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/5 text-primary transition-colors group-hover:bg-primary group-hover:text-white shadow-sm ring-1 ring-primary/10">
-                        <FileText className="h-10 w-10" />
-                      </div>
-                      <div className="space-y-0.5 w-full text-center">
-                        <p className="block text-[10px] font-black uppercase tracking-tighter text-muted-foreground truncate">
-                          {doc?.type}
-                        </p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>

@@ -24,6 +24,8 @@ import {
   Star,
   HelpCircle,
   ListChecks,
+  FileStack,
+  Coins,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -39,6 +41,8 @@ const navItems = [
   { name: "Tax Orders", href: "/admin/orders", icon: FileText },
   { name: "Payments", href: "/admin/payments", icon: CreditCard },
   { name: "Tax Types", href: "/admin/tax-types", icon: Calculator },
+  { name: "File Names", href: "/admin/file-names", icon: FileStack },
+  { name: "Income Sources", href: "/admin/income-sources", icon: Coins },
   { name: "Files", href: "/admin/files", icon: Files },
   { name: "News", href: "/admin/news", icon: Newspaper },
   { name: "Blogs", href: "/admin/blogs", icon: BookOpen },

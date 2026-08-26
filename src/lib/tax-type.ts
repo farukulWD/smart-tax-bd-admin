@@ -1,4 +1,5 @@
 import type { LocalizedText } from "@/lib/localize";
+import type { IFileName } from "@/redux/api/file-name/fileNameApi";
 
 // Keep in sync with TAX_TYPE_VALUES in
 // smart-tax-bd-server/src/app/module/taxTypes/tax.types.interface.ts
@@ -34,6 +35,8 @@ export type TaxType = {
   rate: number;
   value: TaxTypeValue;
   icon?: string;
+  // Populated by the server, so an id-only shape is never returned.
+  required_files?: IFileName[];
   tax_orders_id?: string[];
   description: LocalizedText | string;
   isActive: boolean;

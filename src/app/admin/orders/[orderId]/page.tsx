@@ -17,7 +17,8 @@ function OrderDetailsPage() {
     },
   );
 
-  const { tax_order } = fetchedOrderData?.data || {};
+  const { tax_order, required_documents, uploaded_files } =
+    fetchedOrderData?.data || {};
 
   if (isFetching) {
     return (
@@ -77,7 +78,12 @@ function OrderDetailsPage() {
         </div>
       </div>
 
-      <OrderDetailsCard key={tax_order._id} order={tax_order} />
+      <OrderDetailsCard
+        key={tax_order._id}
+        order={tax_order}
+        requiredDocuments={required_documents ?? []}
+        uploadedFiles={uploaded_files ?? []}
+      />
     </div>
   );
 }

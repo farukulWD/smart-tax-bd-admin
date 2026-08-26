@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { readLocalized } from "@/lib/localize";
@@ -37,6 +38,7 @@ import {
   TAX_TYPE_VALUES,
   type TaxType,
 } from "@/lib/tax-type";
+import { useGetAllFileNamesQuery } from "@/redux/api/file-name/fileNameApi";
 import {
   useCreateTaxTypeMutation,
   useUpdateTaxTypeMutation,
@@ -56,6 +58,7 @@ const taxTypeSchema = z.object({
     ),
   descriptionEn: z.string().trim().min(1, "English description is required"),
   descriptionBn: z.string().trim().min(1, "Bangla description is required"),
+  requiredFiles: z.array(z.string()),
   isActive: z.boolean(),
 });
 
@@ -70,6 +73,13 @@ export function TaxTypeForm({ taxType }: TaxTypeFormProps) {
   const [createTaxType, { isLoading: isCreating }] = useCreateTaxTypeMutation();
   const [updateTaxType, { isLoading: isUpdating }] = useUpdateTaxTypeMutation();
   const isSaving = isCreating || isUpdating;
+  const { data: fileNamesResponse, isLoading: isFileNamesLoading } =
+    useGetAllFileNamesQuery();
+
+  const fileNameOptions = (fileNamesResponse?.data ?? []).map((fileName) => ({
+    value: fileName._id,
+    label: fileName.name,
+  }));
 
   const form = useForm<TaxTypeFormValues>({
     resolver: zodResolver(taxTypeSchema),
@@ -80,6 +90,7 @@ export function TaxTypeForm({ taxType }: TaxTypeFormProps) {
       rate: taxType?.rate?.toString() ?? "",
       descriptionEn: readLocalized(taxType?.description, "en"),
       descriptionBn: readLocalized(taxType?.description, "bn"),
+      requiredFiles: taxType?.required_files?.map((file) => file._id) ?? [],
       isActive: taxType?.isActive ?? true,
     },
   });
@@ -110,6 +121,7 @@ export function TaxTypeForm({ taxType }: TaxTypeFormProps) {
       rate: Number(values.rate),
       value: values.value,
       description: { en: values.descriptionEn, bn: values.descriptionBn },
+      required_files: values.requiredFiles,
       isActive: values.isActive,
     };
 
@@ -251,6 +263,37 @@ export function TaxTypeForm({ taxType }: TaxTypeFormProps) {
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="requiredFiles"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Required Files</FormLabel>
+                  <FormControl>
+                    <MultiSelect
+                      options={fileNameOptions}
+                      value={field.value}
+                      onChange={field.onChange}
+                      disabled={isFileNamesLoading}
+                      placeholder={
+                        isFileNamesLoading
+                          ? "Loading file names..."
+                          : "Select the documents users must upload"
+                      }
+                      searchPlaceholder="Search file names..."
+                      emptyText="No file names yet — add them under File Names."
+                    />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    Shown as upload slots on the client and app for every order
+                    that includes this tax type. Leave empty to keep the legacy
+                    built-in list for this tax type.
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="grid gap-2">
               <Label htmlFor="icon">Icon (optional)</Label>

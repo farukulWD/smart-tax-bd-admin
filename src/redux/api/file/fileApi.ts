@@ -32,7 +32,8 @@ const fileApi = baseApi.injectEndpoints({
         method: "POST",
         data,
       }),
-      invalidatesTags: ["files"],
+      // "orders" too: a file belongs to an order, whose documents panel must refresh.
+      invalidatesTags: ["files", "orders"],
     }),
     getMyFiles: builder.query<TResponse<Ifile[]>, void>({
       query: () => ({
