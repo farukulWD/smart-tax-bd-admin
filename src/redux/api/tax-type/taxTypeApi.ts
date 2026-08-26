@@ -1,4 +1,5 @@
 import { TResponse } from "@/types";
+import type { TaxType } from "@/lib/tax-type";
 import { baseApi } from "../baseApi";
 
 const taxTypeApi = baseApi.injectEndpoints({
@@ -11,7 +12,7 @@ const taxTypeApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["taxTypes"],
     }),
-    getAllTaxTypes: builder.query<TResponse<any>, void>({
+    getAllTaxTypes: builder.query<TResponse<TaxType[]>, void>({
       query: () => ({
         url: "/tax-types/get-all-tax-types",
         method: "GET",
