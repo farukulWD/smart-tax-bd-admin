@@ -1,11 +1,15 @@
 "use client";
 
 import { IOrder } from "@/redux/api/order/orderApi";
+import { getPayableFeeAmount } from "@/lib/coupon";
 import { Badge } from "../ui/badge";
 
 const PaymentStatusBadge = ({ order }: { order: IOrder }) => {
   // A bucket is "covered" when it is paid or there is nothing to pay for it.
-  const feeCovered = order?.is_fee_amount_paid || (order?.fee_amount ?? 0) <= 0;
+  // Coupon-discounted fee: a coupon covering the fee in full leaves nothing
+  // to collect, so the bucket counts as covered.
+  const feeCovered =
+    order?.is_fee_amount_paid || getPayableFeeAmount(order ?? {}) <= 0;
   const feeDueCovered =
     order?.is_fee_due_amount_paid || (order?.fee_due_amount ?? 0) <= 0;
   const taxCovered =

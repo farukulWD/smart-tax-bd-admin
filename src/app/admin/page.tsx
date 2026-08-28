@@ -1,9 +1,11 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import Link from "next/link";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users,
   FileText,
@@ -13,11 +15,29 @@ import {
   Clock3,
   Wallet,
   ShieldCheck,
+  BanknoteArrowDown,
+  TrendingUp,
+  PieChart,
+  UserPlus,
+  Layers,
 } from "lucide-react";
-import { useGetUsersQuery } from "@/redux/api/user/userApi";
 import { useGetAllTaxOrdersQuery } from "@/redux/api/order/orderApi";
-import { useGetAllTaxTypesQuery } from "@/redux/api/tax-type/taxTypeApi";
-import { useGetAllFilesQuery } from "@/redux/api/file/fileApi";
+import {
+  useGetDashboardChartsQuery,
+  useGetDashboardStatsQuery,
+  type TDashboardRange,
+} from "@/redux/api/dashboard/dashboardApi";
+import { StatTile } from "@/components/dashboard/stat-tile";
+import { ChartCard } from "@/components/dashboard/chart-card";
+import { RangeSelector } from "@/components/dashboard/range-selector";
+import { TrendAreaChart } from "@/components/dashboard/trend-area-chart";
+import { CategoryBarChart } from "@/components/dashboard/category-bar-chart";
+import { RevenueChart } from "@/components/dashboard/revenue-chart";
+import {
+  formatBDT,
+  formatCount,
+  humanizeStatus,
+} from "@/components/dashboard/dashboard-utils";
 
 const quickActions = [
   { label: "Review Tax Orders", href: "/admin/orders", icon: FileText },
@@ -26,53 +46,78 @@ const quickActions = [
   { label: "Audit Uploaded Files", href: "/admin/files", icon: Files },
 ];
 
+const RANGE_LABEL: Record<TDashboardRange, string> = {
+  "7d": "Last 7 days",
+  "30d": "Last 30 days",
+  "12m": "Last 12 months",
+};
+
 export default function AdminDashboardPage() {
-  const { data: usersData, isLoading: usersLoading } = useGetUsersQuery();
+  const [range, setRange] = useState<TDashboardRange>("30d");
+
+  const {
+    data: statsData,
+    isLoading: statsLoading,
+    isError: statsError,
+  } = useGetDashboardStatsQuery();
+
+  const {
+    data: chartsData,
+    isFetching: chartsFetching,
+    isError: chartsError,
+  } = useGetDashboardChartsQuery(range);
+
+  // The recent-orders list still needs order documents; the counters no longer do.
   const { data: ordersData, isLoading: ordersLoading } =
     useGetAllTaxOrdersQuery();
-  const { data: taxTypesData, isLoading: taxTypesLoading } =
-    useGetAllTaxTypesQuery();
-  const { data: filesData, isLoading: filesLoading } = useGetAllFilesQuery();
 
-  const totalUsers = usersData?.data?.length ?? 0;
-  const allOrders = ordersData?.data ?? [];
-  const pendingOrders = allOrders.filter(
-    (o) => o.status?.toLowerCase() === "pending",
-  ).length;
-  const totalTaxTypes = taxTypesData?.data?.length ?? 0;
-  const totalFiles = filesData?.data?.length ?? 0;
+  const stats = statsData?.data;
+  const charts = chartsData?.data;
+  const periodLabel = RANGE_LABEL[range];
 
-  const recentOrders = [...allOrders]
-    .sort((a, b) => {
-      if (!a.createdAt || !b.createdAt) return 0;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    })
-    .slice(0, 3);
+  const recentOrders = useMemo(() => {
+    const allOrders = ordersData?.data ?? [];
+    return [...allOrders]
+      .sort((a, b) => {
+        if (!a.createdAt || !b.createdAt) return 0;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      })
+      .slice(0, 3);
+  }, [ordersData]);
 
-  const stats = [
+  const statusData = useMemo(
+    () =>
+      (charts?.statusBreakdown ?? []).map((row) => ({
+        label: humanizeStatus(row.status),
+        count: row.count,
+      })),
+    [charts],
+  );
+
+  const tiles = [
     {
       name: "Total Users",
-      value: usersLoading ? "—" : totalUsers.toLocaleString(),
-      helper: usersLoading ? "Loading..." : `${totalUsers} registered users`,
+      value: formatCount(stats?.totalUsers ?? 0),
+      helper: `${formatCount(stats?.activeUsers ?? 0)} active`,
       icon: Users,
     },
     {
-      name: "Pending Orders",
-      value: ordersLoading ? "—" : pendingOrders.toLocaleString(),
-      helper: ordersLoading ? "Loading..." : "Needs review today",
+      name: "Orders In Progress",
+      value: formatCount(stats?.ordersInProgress ?? 0),
+      helper: `of ${formatCount(stats?.totalOrders ?? 0)} total orders`,
       icon: Clock3,
     },
     {
-      name: "Tax Types",
-      value: taxTypesLoading ? "—" : totalTaxTypes.toLocaleString(),
-      helper: taxTypesLoading ? "Loading..." : `${totalTaxTypes} active types`,
-      icon: Calculator,
+      name: "Collected",
+      value: formatBDT(stats?.totalCollected ?? 0),
+      helper: `${formatBDT(stats?.feeRevenue ?? 0)} fee revenue`,
+      icon: Wallet,
     },
     {
-      name: "Documents",
-      value: filesLoading ? "—" : totalFiles.toLocaleString(),
-      helper: filesLoading ? "Loading..." : `${totalFiles} files uploaded`,
-      icon: Files,
+      name: "Outstanding",
+      value: formatBDT(stats?.totalOutstanding ?? 0),
+      helper: "Unpaid balance on open orders",
+      icon: BanknoteArrowDown,
     },
   ];
 
@@ -90,25 +135,124 @@ export default function AdminDashboardPage() {
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.name} className="border-border/80 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.name}
-              </CardTitle>
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <stat.icon className="h-4 w-4" />
-              </span>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{stat.value}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {stat.helper}
-              </p>
-            </CardContent>
-          </Card>
+        {tiles.map((tile) => (
+          <StatTile
+            key={tile.name}
+            name={tile.name}
+            value={tile.value}
+            helper={tile.helper}
+            icon={tile.icon}
+            isLoading={statsLoading || statsError}
+          />
         ))}
       </section>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm font-medium text-muted-foreground">
+          Showing {periodLabel.toLowerCase()}
+        </p>
+        <RangeSelector value={range} onChange={setRange} />
+      </div>
+
+      <section className="grid gap-4 xl:grid-cols-5">
+        <ChartCard
+          title="Orders over time"
+          description={periodLabel}
+          icon={TrendingUp}
+          className="xl:col-span-3"
+          isLoading={chartsFetching}
+          isError={chartsError}
+          isEmpty={!charts?.ordersOverTime?.length}
+        >
+          <TrendAreaChart
+            data={charts?.ordersOverTime ?? []}
+            range={range}
+            label="Orders"
+          />
+        </ChartCard>
+
+        <ChartCard
+          title="Order status"
+          description={periodLabel}
+          icon={PieChart}
+          className="xl:col-span-2"
+          isLoading={chartsFetching}
+          isError={chartsError}
+          isEmpty={!statusData.length}
+        >
+          <CategoryBarChart data={statusData} measureLabel="Orders" />
+        </ChartCard>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-5">
+        <ChartCard
+          title="Collected vs outstanding"
+          description={`${periodLabel} · BDT`}
+          icon={Wallet}
+          className="xl:col-span-3"
+          isLoading={chartsFetching}
+          isError={chartsError}
+          isEmpty={!charts?.revenueOverTime?.length}
+        >
+          <RevenueChart data={charts?.revenueOverTime ?? []} range={range} />
+        </ChartCard>
+
+        <ChartCard
+          title="New users"
+          description={periodLabel}
+          icon={UserPlus}
+          className="xl:col-span-2"
+          isLoading={chartsFetching}
+          isError={chartsError}
+          isEmpty={!charts?.usersOverTime?.length}
+        >
+          <TrendAreaChart
+            data={charts?.usersOverTime ?? []}
+            range={range}
+            label="Signups"
+            colorVar="var(--chart-3)"
+          />
+        </ChartCard>
+      </section>
+
+      <ChartCard
+        title="What people are filing"
+        description={`${periodLabel} · top 10`}
+        icon={Layers}
+        isLoading={chartsFetching}
+        isError={chartsError}
+      >
+        <Tabs defaultValue="income">
+          <TabsList>
+            <TabsTrigger value="income">Income sources</TabsTrigger>
+            <TabsTrigger value="tax-types">Tax types</TabsTrigger>
+          </TabsList>
+          <TabsContent value="income" className="pt-4">
+            {charts?.incomeSourceMix?.length ? (
+              <CategoryBarChart
+                data={charts.incomeSourceMix}
+                measureLabel="Orders"
+              />
+            ) : (
+              <p className="py-16 text-center text-sm text-muted-foreground">
+                No income sources recorded for this period.
+              </p>
+            )}
+          </TabsContent>
+          <TabsContent value="tax-types" className="pt-4">
+            {charts?.taxTypeMix?.length ? (
+              <CategoryBarChart
+                data={charts.taxTypeMix}
+                measureLabel="Orders"
+              />
+            ) : (
+              <p className="py-16 text-center text-sm text-muted-foreground">
+                No tax types recorded for this period.
+              </p>
+            )}
+          </TabsContent>
+        </Tabs>
+      </ChartCard>
 
       <section className="grid gap-4 xl:grid-cols-5">
         <Card className="xl:col-span-3">
@@ -135,7 +279,7 @@ export default function AdminDashboardPage() {
                   </span>
                   {" — "}
                   <span className="capitalize text-muted-foreground">
-                    {order.status}
+                    {humanizeStatus(order.status ?? "")}
                   </span>
                   {order.personal_information?.name && (
                     <span className="text-muted-foreground">

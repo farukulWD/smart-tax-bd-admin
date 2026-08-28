@@ -27,6 +27,7 @@ import {
   ListChecks,
   FileStack,
   Coins,
+  TicketPercent,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -48,6 +49,7 @@ const navGroups = [
       { name: "Tax Orders", href: "/admin/orders", icon: FileText },
       { name: "Payments", href: "/admin/payments", icon: CreditCard },
       { name: "Files", href: "/admin/files", icon: Files },
+      { name: "Coupons", href: "/admin/coupons", icon: TicketPercent },
     ],
   },
   {
