@@ -49,6 +49,7 @@ import PaymentStatusBadge from "./payment-status-badge";
 import RequiredDocumentsSection from "./RequiredDocumentsSection";
 import { Ifile } from "@/redux/api/file/fileApi";
 import Link from "next/link";
+import { getAppliedCoupon, getPayableFeeAmount } from "@/lib/coupon";
 
 const ADMIN_FILE_TYPES = ["Acknowledgement", "Tax Certificate"] as const;
 
@@ -173,11 +174,17 @@ export const OrderDetailsCard = ({
   const remainingAllAmount =
     (order.fee_due_amount ?? 0) + (order.tax_payable_amount ?? 0);
 
+  // Every fee figure below is the coupon-discounted one; `order.fee_amount` is
+  // the list price and is only shown struck through for reference.
+  const appliedCoupon = getAppliedCoupon(order.applied_coupon);
+  const payableFee = getPayableFeeAmount(order);
+  const couponDiscount = Number(appliedCoupon?.discount_amount || 0);
+
   const cashPaymentOptions = [
     {
       value: "fee_amount",
-      label: `Service Fee (৳${order.fee_amount ?? 0})`,
-      available: !order.is_fee_amount_paid && (order.fee_amount ?? 0) > 0,
+      label: `Service Fee (৳${payableFee})`,
+      available: !order.is_fee_amount_paid && payableFee > 0,
     },
     {
       value: "fee_due_amount",
@@ -406,8 +413,17 @@ export const OrderDetailsCard = ({
                       Fee
                     </p>
                     <p className="text-xl font-black text-foreground">
-                      ৳{order.fee_amount ?? 0}
+                      ৳{payableFee}
                     </p>
+                    {couponDiscount > 0 && (
+                      <p className="mt-1 text-[10px] font-bold text-emerald-600">
+                        <span className="text-muted-foreground line-through">
+                          ৳{order.fee_amount ?? 0}
+                        </span>{" "}
+                        −৳{couponDiscount}
+                        {appliedCoupon?.code ? ` · ${appliedCoupon.code}` : ""}
+                      </p>
+                    )}
                   </div>
                   <div className="rounded-xl border border-muted bg-background p-4 text-center">
                     <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">
@@ -417,7 +433,7 @@ export const OrderDetailsCard = ({
                       ৳
                       {order.is_fee_amount_paid || order.is_fee_due_amount_paid
                         ? 0
-                        : order.fee_amount + order.fee_due_amount}
+                        : payableFee + (order.fee_due_amount ?? 0)}
                     </p>
                   </div>
                   <div className="rounded-xl border border-muted bg-background p-4 text-center">
