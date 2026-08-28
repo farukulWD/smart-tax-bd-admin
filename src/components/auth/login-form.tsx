@@ -28,7 +28,7 @@ import Cookies from "js-cookie";
 
 const loginSchema = z.object({
   email: z.email("Email is required"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(4, "Password must be at least 4 characters long"),
 });
 
 type LoginValues = z.infer<typeof loginSchema>;

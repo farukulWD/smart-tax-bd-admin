@@ -9,11 +9,19 @@ export interface Ifile {
   type: string;
   file: string;
   orderId: string;
-  order: IOrder;
+  order?: IOrder;
   userId: string;
-  user: IUser;
+  user?: IUser;
   createdAt?: Date;
   updatedAt?: Date;
+}
+
+export interface IFileListQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+  userId?: string;
+  orderId?: string;
 }
 
 const fileApi = baseApi.injectEndpoints({
@@ -24,7 +32,8 @@ const fileApi = baseApi.injectEndpoints({
         method: "POST",
         data,
       }),
-      invalidatesTags: ["files"],
+      // "orders" too: a file belongs to an order, whose documents panel must refresh.
+      invalidatesTags: ["files", "orders"],
     }),
     getMyFiles: builder.query<TResponse<Ifile[]>, void>({
       query: () => ({
@@ -33,10 +42,11 @@ const fileApi = baseApi.injectEndpoints({
       }),
       providesTags: ["files"],
     }),
-    getAllFiles: builder.query<TResponse<Ifile[]>, void>({
-      query: () => ({
+    getAllFiles: builder.query<TResponse<Ifile[]>, IFileListQuery | void>({
+      query: (params) => ({
         url: "/files/get-all-files",
         method: "GET",
+        params: params || undefined,
       }),
       providesTags: ["files"],
     }),

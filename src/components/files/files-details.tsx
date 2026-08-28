@@ -1,19 +1,14 @@
 "use client";
 
 import { useGetSingleFileQuery } from "@/redux/api/file/fileApi";
-import {
-  Download,
-  File as FileIcon,
-  FileText,
-  ImageIcon,
-  Loader2,
-} from "lucide-react";
+import { Download, FileText, ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import Link from "next/link";
+import FilePreview, { getFileKind } from "./file-preview";
 
 const FileDetails = ({ fileId }: { fileId: string }) => {
   const { data, isLoading, isError } = useGetSingleFileQuery(fileId);
@@ -35,8 +30,7 @@ const FileDetails = ({ fileId }: { fileId: string }) => {
   }
 
   const fileData = data.data;
-  const isImage = /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(fileData.file);
-  const isPdf = /\.pdf$/i.test(fileData.file);
+  const isImage = getFileKind(fileData.file) === "image";
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
@@ -48,28 +42,7 @@ const FileDetails = ({ fileId }: { fileId: string }) => {
           </CardTitle>
         </CardHeader>
         <CardContent className="flex min-h-[500px] items-center justify-center p-4">
-          {isImage ? (
-            <div className="relative h-full w-full flex items-center justify-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={fileData.file}
-                alt={fileData.name}
-                className="max-h-[600px] w-auto rounded-lg object-contain shadow-md"
-              />
-            </div>
-          ) : isPdf ? (
-            <iframe
-              src={`${fileData.file}#toolbar=0`}
-              className="h-[600px] w-full rounded-lg border shadow-sm"
-              title={fileData.name}
-            />
-          ) : (
-            <div className="flex flex-col items-center gap-4 text-muted-foreground">
-              <FileIcon className="h-24 w-24" />
-              <p className="text-xl font-semibold">{fileData.name}</p>
-              <p>Preview not available for this file type</p>
-            </div>
-          )}
+          <FilePreview file={fileData.file} name={fileData.name} size="full" />
         </CardContent>
       </Card>
 

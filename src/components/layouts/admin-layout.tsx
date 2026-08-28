@@ -15,6 +15,7 @@ import {
   X,
   LogOut,
   ChevronRight,
+  ChevronDown,
   Calculator,
   ShieldCheck,
   CreditCard,
@@ -24,6 +25,9 @@ import {
   Star,
   HelpCircle,
   ListChecks,
+  FileStack,
+  Coins,
+  TicketPercent,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -33,25 +37,54 @@ import { useSocket } from "@/hooks/useSocket";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 
-const navItems = [
-  { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
-  { name: "Users", href: "/admin/users", icon: Users },
-  { name: "Tax Orders", href: "/admin/orders", icon: FileText },
-  { name: "Payments", href: "/admin/payments", icon: CreditCard },
-  { name: "Tax Types", href: "/admin/tax-types", icon: Calculator },
-  { name: "Files", href: "/admin/files", icon: Files },
-  { name: "News", href: "/admin/news", icon: Newspaper },
-  { name: "Blogs", href: "/admin/blogs", icon: BookOpen },
-  { name: "Reviews", href: "/admin/reviews", icon: Star },
-  { name: "FAQs", href: "/admin/faqs", icon: HelpCircle },
-  { name: "How It Works", href: "/admin/how-it-works", icon: ListChecks },
-  { name: "Notifications", href: "/admin/notifications", icon: Bell },
-  { name: "Profile", href: "/admin/profile", icon: UserCircle2 },
-  { name: "Settings", href: "/admin/settings", icon: Settings },
+const navGroups = [
+  {
+    label: "Overview",
+    items: [{ name: "Dashboard", href: "/admin", icon: LayoutDashboard }],
+  },
+  {
+    label: "Operations",
+    items: [
+      { name: "Users", href: "/admin/users", icon: Users },
+      { name: "Tax Orders", href: "/admin/orders", icon: FileText },
+      { name: "Payments", href: "/admin/payments", icon: CreditCard },
+      { name: "Files", href: "/admin/files", icon: Files },
+      { name: "Coupons", href: "/admin/coupons", icon: TicketPercent },
+    ],
+  },
+  {
+    label: "Configuration",
+    items: [
+      { name: "Tax Types", href: "/admin/tax-types", icon: Calculator },
+      { name: "File Names", href: "/admin/file-names", icon: FileStack },
+      { name: "Income Sources", href: "/admin/income-sources", icon: Coins },
+    ],
+  },
+  {
+    label: "Content",
+    items: [
+      { name: "News", href: "/admin/news", icon: Newspaper },
+      { name: "Blogs", href: "/admin/blogs", icon: BookOpen },
+      { name: "Reviews", href: "/admin/reviews", icon: Star },
+      { name: "FAQs", href: "/admin/faqs", icon: HelpCircle },
+      { name: "How It Works", href: "/admin/how-it-works", icon: ListChecks },
+    ],
+  },
+  {
+    label: "Account",
+    items: [
+      { name: "Notifications", href: "/admin/notifications", icon: Bell },
+      { name: "Profile", href: "/admin/profile", icon: UserCircle2 },
+      { name: "Settings", href: "/admin/settings", icon: Settings },
+    ],
+  },
 ];
+
+const navItems = navGroups.flatMap((group) => group.items);
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [collapsedGroups, setCollapsedGroups] = useState<string[]>([]);
   const pathname = usePathname();
   const params = useParams();
 
@@ -96,6 +129,13 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     if (href === "/admin") return pathname === href;
     return pathname.startsWith(href);
   };
+
+  const toggleGroup = (label: string) =>
+    setCollapsedGroups((prev) =>
+      prev.includes(label)
+        ? prev.filter((item) => item !== label)
+        : [...prev, label],
+    );
 
   const handleLogout = async () => {
     try {
@@ -159,38 +199,88 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </Button>
           </div>
 
-          <nav className="flex-1 space-y-1.5 overflow-y-auto p-4">
-            {navItems.map((item) => {
-              const active = isItemActive(item.href);
-              const isNotifications = item.href === "/admin/notifications";
+          <nav className="flex-1 space-y-5 overflow-y-auto p-4">
+            {navGroups.map((group) => {
+              const collapsed = collapsedGroups.includes(group.label);
+              const hasActiveItem = group.items.some((item) =>
+                isItemActive(item.href),
+              );
+              const groupUnread =
+                unreadCount > 0 &&
+                group.items.some(
+                  (item) => item.href === "/admin/notifications",
+                );
               return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
-                    active
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                  )}
-                >
-                  <item.icon
+                <div key={group.label} className="space-y-1.5">
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(group.label)}
+                    aria-expanded={!collapsed}
+                    aria-controls={`nav-group-${group.label}`}
                     className={cn(
-                      "h-4 w-4",
-                      active
-                        ? "text-primary-foreground"
-                        : "text-muted-foreground group-hover:text-accent-foreground",
+                      "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-colors hover:bg-accent/60",
+                      collapsed && hasActiveItem
+                        ? "text-primary"
+                        : "text-muted-foreground/70 hover:text-accent-foreground",
                     )}
-                  />
-                  <span>{item.name}</span>
-                  {isNotifications && unreadCount > 0 ? (
-                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
-                      {unreadCount > 99 ? "99+" : unreadCount}
-                    </span>
-                  ) : (
-                    active && <ChevronRight className="ml-auto h-4 w-4" />
-                  )}
-                </Link>
+                  >
+                    <ChevronDown
+                      className={cn(
+                        "h-3.5 w-3.5 transition-transform duration-200",
+                        collapsed && "-rotate-90",
+                      )}
+                    />
+                    <span>{group.label}</span>
+                    {collapsed && groupUnread && (
+                      <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-white">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    )}
+                  </button>
+
+                  <div
+                    id={`nav-group-${group.label}`}
+                    hidden={collapsed}
+                    className="space-y-1.5"
+                  >
+                    {group.items.map((item) => {
+                      const active = isItemActive(item.href);
+                      const isNotifications =
+                        item.href === "/admin/notifications";
+                      return (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          className={cn(
+                            "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+                            active
+                              ? "bg-primary text-primary-foreground shadow-sm"
+                              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                          )}
+                        >
+                          <item.icon
+                            className={cn(
+                              "h-4 w-4",
+                              active
+                                ? "text-primary-foreground"
+                                : "text-muted-foreground group-hover:text-accent-foreground",
+                            )}
+                          />
+                          <span>{item.name}</span>
+                          {isNotifications && unreadCount > 0 ? (
+                            <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
+                              {unreadCount > 99 ? "99+" : unreadCount}
+                            </span>
+                          ) : (
+                            active && (
+                              <ChevronRight className="ml-auto h-4 w-4" />
+                            )
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
               );
             })}
           </nav>

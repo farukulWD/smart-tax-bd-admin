@@ -22,6 +22,16 @@ export interface IPersonalInformation {
   are_you_house_wife: boolean;
 }
 
+/** Frozen coupon snapshot the server writes onto the order when one is applied. */
+export interface IAppliedCoupon {
+  code: string;
+  discountType: "percentage" | "fixed";
+  discountValue: number;
+  /** BDT taken off the service fee. The only field to use for money math. */
+  discount_amount: number;
+  applied_at?: string;
+}
+
 export interface IOrder {
   _id?: string;
   userId?: string;
@@ -41,6 +51,7 @@ export interface IOrder {
   tax_paid_amount: number;
   fee_amount: number;
   is_fee_amount_paid: boolean;
+  applied_coupon?: IAppliedCoupon;
   fee_due_amount: number;
   is_fee_due_amount_paid: boolean;
   total_amount: number;
@@ -52,6 +63,11 @@ export interface IOrder {
 export interface ISingleOrder {
   tax_order: IOrder;
   required_documents: string[];
+  /**
+   * Every file stored against the order, newest first. Authoritative — read
+   * from the `files` collection, unlike `tax_order.documents` which is a cache.
+   */
+  uploaded_files?: Ifile[];
 }
 
 export interface IPayment {
@@ -93,7 +109,7 @@ const orderApi = baseApi.injectEndpoints({
         method: "POST",
         data,
       }),
-      invalidatesTags: ["orders"],
+      invalidatesTags: ["orders", "dashboard"],
     }),
     getAllTaxOrders: builder.query<TResponse<IOrder[]>, void>({
       query: () => ({
@@ -132,6 +148,7 @@ const orderApi = baseApi.injectEndpoints({
       invalidatesTags: (result, error, { id }) => [
         "orders",
         { type: "orders", id },
+        "dashboard",
       ],
     }),
     paymentsByOrderId: builder.query<TResponse<IPayment[]>, string>({
@@ -168,6 +185,7 @@ const orderApi = baseApi.injectEndpoints({
         "orders",
         { type: "orders", id: orderId },
         "payments",
+        "dashboard",
       ],
     }),
     adminUploadDocumentForUser: builder.mutation<
@@ -183,6 +201,7 @@ const orderApi = baseApi.injectEndpoints({
         "orders",
         { type: "orders", id: taxId },
         "files",
+        "dashboard",
       ],
     }),
   }),
