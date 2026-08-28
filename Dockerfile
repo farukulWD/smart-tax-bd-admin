@@ -5,7 +5,7 @@ WORKDIR /app
 RUN npm install -g pnpm@11.24.0
 
 # Install deps (cached unless lockfile changes)
-COPY package.json ./
+COPY package.json pnpm-workspace.yaml ./
 RUN pnpm install
 
 # NEXT_PUBLIC_* are baked into the bundle at build time
