@@ -1,11 +1,11 @@
 # Stage 1: Build
-FROM node:20-alpine AS build
+FROM node:22.23.2-alpine AS build
 WORKDIR /app
 
-RUN npm install -g pnpm
+RUN npm install -g pnpm@11.24.0
 
 # Install deps (cached unless lockfile changes)
-COPY package.json ./
+COPY package.json pnpm-workspace.yaml ./
 RUN pnpm install
 
 # NEXT_PUBLIC_* are baked into the bundle at build time
@@ -16,7 +16,7 @@ COPY . .
 RUN pnpm run build
 
 # Stage 2: Run (Next standalone output)
-FROM node:20-alpine
+FROM node:22.23.2-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
