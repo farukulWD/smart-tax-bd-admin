@@ -39,6 +39,7 @@ export type TaxType = {
   required_files?: IFileName[];
   tax_orders_id?: string[];
   description: LocalizedText | string;
+  order?: number;
   isActive: boolean;
   createdAt?: Date;
   updatedAt?: Date;

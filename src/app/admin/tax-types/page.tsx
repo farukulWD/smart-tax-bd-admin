@@ -3,6 +3,7 @@
 import {
   useGetAllTaxTypesQuery,
   useDeleteTaxTypeMutation,
+  useReorderTaxTypesMutation,
 } from "@/redux/api/tax-type/taxTypeApi";
 import {
   Table,
@@ -18,6 +19,7 @@ import {
   Trash2,
   Edit,
   Calculator,
+  GripVertical,
   HandCoins,
   ImageIcon,
 } from "lucide-react";
@@ -25,6 +27,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { ReactSortable } from "react-sortablejs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -35,14 +38,28 @@ import {
   type TaxType,
 } from "@/lib/tax-type";
 
+interface SortableTaxType extends TaxType {
+  id: string;
+}
+
+const errorMessage = (error: unknown, fallback: string) =>
+  (error as { data?: { message?: string } })?.data?.message || fallback;
+
 export default function TaxTypesPage() {
   const { data, isLoading } = useGetAllTaxTypesQuery();
+  const [reorderTaxTypes] = useReorderTaxTypesMutation();
   const [deleteTaxType, { isLoading: isDeleting }] =
     useDeleteTaxTypeMutation();
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const taxTypes = useMemo<TaxType[]>(() => data?.data ?? [], [data]);
+  const [taxTypes, setTaxTypes] = useState<SortableTaxType[]>([]);
+  const [syncedData, setSyncedData] = useState(data);
+
+  if (data !== syncedData) {
+    setSyncedData(data);
+    setTaxTypes((data?.data ?? []).map((item) => ({ ...item, id: item._id })));
+  }
 
   const averageRate = useMemo(() => {
     if (!taxTypes.length) return 0;
@@ -52,6 +69,17 @@ export default function TaxTypesPage() {
     );
     return Math.round(total / taxTypes.length);
   }, [taxTypes]);
+
+  const handleSortChange = async (newList: SortableTaxType[]) => {
+    setTaxTypes(newList);
+    try {
+      await reorderTaxTypes({
+        items: newList.map((item, index) => ({ id: item._id, order: index })),
+      }).unwrap();
+    } catch (error) {
+      toast.error(errorMessage(error, "Failed to save new order"));
+    }
+  };
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -70,7 +98,8 @@ export default function TaxTypesPage() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Tax Types</h2>
           <p className="text-sm text-muted-foreground">
-            Maintain tax categories and rates for filing operations.
+            Maintain tax categories and rates for filing operations. Drag rows
+            to reorder.
           </p>
         </div>
         <Button asChild>
@@ -114,6 +143,7 @@ export default function TaxTypesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10" />
                   <TableHead className="w-16">Icon</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>Value</TableHead>
@@ -122,28 +152,41 @@ export default function TaxTypesPage() {
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
-                {isLoading ? (
+              {isLoading ? (
+                <TableBody>
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="h-24 text-center text-muted-foreground"
                     >
                       Loading tax types...
                     </TableCell>
                   </TableRow>
-                ) : taxTypes.length === 0 ? (
+                </TableBody>
+              ) : taxTypes.length === 0 ? (
+                <TableBody>
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="h-24 text-center text-muted-foreground"
                     >
                       No tax types found.
                     </TableCell>
                   </TableRow>
-                ) : (
-                  taxTypes.map((type) => (
-                    <TableRow key={type._id}>
+                </TableBody>
+              ) : (
+                <ReactSortable
+                  tag="tbody"
+                  list={taxTypes}
+                  setList={handleSortChange}
+                  handle=".drag-handle"
+                  className="[&_tr:last-child]:border-0"
+                >
+                  {taxTypes.map((type) => (
+                    <TableRow key={type.id}>
+                      <TableCell>
+                        <GripVertical className="drag-handle h-4 w-4 cursor-grab text-muted-foreground active:cursor-grabbing" />
+                      </TableCell>
                       <TableCell>
                         {isIconUrl(type.icon) ? (
                           <div className="relative h-9 w-9 overflow-hidden rounded-md border border-border bg-muted">
@@ -191,9 +234,9 @@ export default function TaxTypesPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
+                  ))}
+                </ReactSortable>
+              )}
             </Table>
           </div>
         </CardContent>

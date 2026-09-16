@@ -30,6 +30,17 @@ const taxTypeApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["taxTypes"],
     }),
+    reorderTaxTypes: builder.mutation<
+      TResponse<TaxType[]>,
+      { items: { id: string; order: number }[] }
+    >({
+      query: (data) => ({
+        url: "/tax-types/reorder",
+        method: "PATCH",
+        data,
+      }),
+      invalidatesTags: ["taxTypes"],
+    }),
     deleteTaxType: builder.mutation<TResponse<any>, string>({
       query: (id) => ({
         url: `/tax-types/delete-tax-type/${id}`,
@@ -44,5 +55,6 @@ export const {
   useCreateTaxTypeMutation,
   useGetAllTaxTypesQuery,
   useUpdateTaxTypeMutation,
+  useReorderTaxTypesMutation,
   useDeleteTaxTypeMutation,
 } = taxTypeApi;

@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Coins, Edit, Plus, Trash2 } from "lucide-react";
+import { ReactSortable } from "react-sortablejs";
+import { Coins, Edit, GripVertical, Plus, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -21,8 +22,13 @@ import type { IncomeSource } from "@/lib/income-source";
 import {
   useDeleteIncomeSourceMutation,
   useGetAllIncomeSourcesAdminQuery,
+  useReorderIncomeSourcesMutation,
   useUpdateIncomeSourceMutation,
 } from "@/redux/api/income-source/incomeSourceApi";
+
+interface SortableIncomeSource extends IncomeSource {
+  id: string;
+}
 
 const errorMessage = (error: unknown, fallback: string) =>
   (error as { data?: { message?: string } })?.data?.message || fallback;
@@ -30,12 +36,23 @@ const errorMessage = (error: unknown, fallback: string) =>
 export default function IncomeSourcesPage() {
   const { data, isLoading } = useGetAllIncomeSourcesAdminQuery();
   const [updateIncomeSource] = useUpdateIncomeSourceMutation();
+  const [reorderIncomeSources] = useReorderIncomeSourcesMutation();
   const [deleteIncomeSource, { isLoading: isDeleting }] =
     useDeleteIncomeSourceMutation();
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const incomeSources = useMemo<IncomeSource[]>(() => data?.data ?? [], [data]);
+  const [incomeSources, setIncomeSources] = useState<SortableIncomeSource[]>(
+    [],
+  );
+  const [syncedData, setSyncedData] = useState(data);
+
+  if (data !== syncedData) {
+    setSyncedData(data);
+    setIncomeSources(
+      (data?.data ?? []).map((item) => ({ ...item, id: item._id })),
+    );
+  }
 
   const handleToggleActive = async (item: IncomeSource) => {
     try {
@@ -48,6 +65,17 @@ export default function IncomeSourcesPage() {
       );
     } catch (error) {
       toast.error(errorMessage(error, "Failed to update status"));
+    }
+  };
+
+  const handleSortChange = async (newList: SortableIncomeSource[]) => {
+    setIncomeSources(newList);
+    try {
+      await reorderIncomeSources({
+        items: newList.map((item, index) => ({ id: item._id, order: index })),
+      }).unwrap();
+    } catch (error) {
+      toast.error(errorMessage(error, "Failed to save new order"));
     }
   };
 
@@ -71,7 +99,7 @@ export default function IncomeSourcesPage() {
           <h2 className="text-2xl font-bold tracking-tight">Income Sources</h2>
           <p className="text-sm text-muted-foreground">
             The income sources users pick when creating an order, and the
-            documents each one requires.
+            documents each one requires. Drag rows to reorder.
           </p>
         </div>
         <Button asChild>
@@ -90,6 +118,7 @@ export default function IncomeSourcesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10" />
                   <TableHead>Value</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>Required Files</TableHead>
@@ -97,28 +126,41 @@ export default function IncomeSourcesPage() {
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
-                {isLoading ? (
+              {isLoading ? (
+                <TableBody>
                   <TableRow>
                     <TableCell
-                      colSpan={5}
+                      colSpan={6}
                       className="h-24 text-center text-muted-foreground"
                     >
                       Loading income sources...
                     </TableCell>
                   </TableRow>
-                ) : incomeSources.length === 0 ? (
+                </TableBody>
+              ) : incomeSources.length === 0 ? (
+                <TableBody>
                   <TableRow>
-                    <TableCell colSpan={5} className="h-28 text-center">
+                    <TableCell colSpan={6} className="h-28 text-center">
                       <div className="flex flex-col items-center gap-2 text-muted-foreground">
                         <Coins className="h-5 w-5" />
                         No income sources found.
                       </div>
                     </TableCell>
                   </TableRow>
-                ) : (
-                  incomeSources.map((item) => (
-                    <TableRow key={item._id}>
+                </TableBody>
+              ) : (
+                <ReactSortable
+                  tag="tbody"
+                  list={incomeSources}
+                  setList={handleSortChange}
+                  handle=".drag-handle"
+                  className="[&_tr:last-child]:border-0"
+                >
+                  {incomeSources.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <GripVertical className="drag-handle h-4 w-4 cursor-grab text-muted-foreground active:cursor-grabbing" />
+                      </TableCell>
                       <TableCell>
                         <span className="block max-w-xs truncate font-medium">
                           {item.value}
@@ -170,9 +212,9 @@ export default function IncomeSourcesPage() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
+                  ))}
+                </ReactSortable>
+              )}
             </Table>
           </div>
         </CardContent>
