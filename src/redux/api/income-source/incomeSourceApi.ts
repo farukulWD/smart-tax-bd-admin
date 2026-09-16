@@ -48,6 +48,17 @@ const incomeSourceApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["incomeSources"],
     }),
+    reorderIncomeSources: builder.mutation<
+      TResponse<IncomeSource[]>,
+      { items: { id: string; order: number }[] }
+    >({
+      query: (data) => ({
+        url: "/income-sources/admin/reorder",
+        method: "PATCH",
+        data,
+      }),
+      invalidatesTags: ["incomeSources"],
+    }),
     deleteIncomeSource: builder.mutation<TResponse<IncomeSource>, string>({
       query: (id) => ({
         url: `/income-sources/admin/${id}`,
@@ -64,5 +75,6 @@ export const {
   useGetAllIncomeSourcesAdminQuery,
   useCreateIncomeSourceMutation,
   useUpdateIncomeSourceMutation,
+  useReorderIncomeSourcesMutation,
   useDeleteIncomeSourceMutation,
 } = incomeSourceApi;
