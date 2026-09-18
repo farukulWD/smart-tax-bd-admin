@@ -32,11 +32,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { readLocalized } from "@/lib/localize";
-import {
-  formatTaxTypeLabel,
-  isIconUrl,
-  type TaxType,
-} from "@/lib/tax-type";
+import { isIconUrl, type TaxType } from "@/lib/tax-type";
 
 interface SortableTaxType extends TaxType {
   id: string;
@@ -209,7 +205,9 @@ export default function TaxTypesPage() {
                       <TableCell className="font-medium">
                         {readLocalized(type.title)}
                       </TableCell>
-                      <TableCell>{formatTaxTypeLabel(type.value)}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {type.value}
+                      </TableCell>
                       <TableCell>{type.rate}%</TableCell>
                       <TableCell>
                         <Badge variant={type.isActive ? "default" : "outline"}>
