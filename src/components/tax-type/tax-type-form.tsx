@@ -21,23 +21,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { readLocalized } from "@/lib/localize";
-import {
-  formatTaxTypeLabel,
-  isIconUrl,
-  TAX_TYPE_VALUES,
-  type TaxType,
-} from "@/lib/tax-type";
+import { isIconUrl, TAX_TYPE_VALUE_PATTERN, type TaxType } from "@/lib/tax-type";
 import { useGetAllFileNamesQuery } from "@/redux/api/file-name/fileNameApi";
 import {
   useCreateTaxTypeMutation,
@@ -47,7 +35,14 @@ import {
 const taxTypeSchema = z.object({
   titleEn: z.string().trim().min(1, "English title is required"),
   titleBn: z.string().trim().min(1, "Bangla title is required"),
-  value: z.enum(TAX_TYPE_VALUES),
+  value: z
+    .string()
+    .trim()
+    .min(1, "Value is required")
+    .regex(
+      TAX_TYPE_VALUE_PATTERN,
+      "Use lowercase letters, numbers and _ only (e.g. brac_income)",
+    ),
   rate: z
     .string()
     .trim()
@@ -86,7 +81,7 @@ export function TaxTypeForm({ taxType }: TaxTypeFormProps) {
     defaultValues: {
       titleEn: readLocalized(taxType?.title, "en"),
       titleBn: readLocalized(taxType?.title, "bn"),
-      value: taxType?.value ?? "income_tax",
+      value: taxType?.value ?? "",
       rate: taxType?.rate?.toString() ?? "",
       descriptionEn: readLocalized(taxType?.description, "en"),
       descriptionBn: readLocalized(taxType?.description, "bn"),
@@ -185,23 +180,18 @@ export function TaxTypeForm({ taxType }: TaxTypeFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Value</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select tax value" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {TAX_TYPE_VALUES.map((item) => (
-                          <SelectItem key={item} value={item}>
-                            {formatTaxTypeLabel(item)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g. brac_income"
+                        className="font-mono"
+                        {...field}
+                      />
+                    </FormControl>
+                    <p className="text-xs text-muted-foreground">
+                      {taxType
+                        ? "Stored on every order of this tax type — renaming it detaches those orders."
+                        : "Stored on the order and sent by the app and website. It is a key, not a label, and must be unique."}
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )}

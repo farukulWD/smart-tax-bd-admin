@@ -50,20 +50,17 @@ import RequiredDocumentsSection from "./RequiredDocumentsSection";
 import { Ifile } from "@/redux/api/file/fileApi";
 import Link from "next/link";
 import { getAppliedCoupon, getPayableFeeAmount } from "@/lib/coupon";
+import { readLocalized } from "@/lib/localize";
+import { formatTaxTypeLabel } from "@/lib/tax-type";
+import { useGetAllTaxTypesQuery } from "@/redux/api/tax-type/taxTypeApi";
 
 const ADMIN_FILE_TYPES = ["Acknowledgement", "Tax Certificate"] as const;
-
-const formatTaxTypeLabel = (value: string) =>
-  value
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
 
 interface OrderDetailsCardProps {
   order: IOrder;
   /**
    * Resolved server-side from the admin-managed catalog. Never recompute it
-   * here — the tax type / income source / file name mapping lives in the DB
+   * here — the tax type / file name mapping lives in the DB
    * now, so a local copy would silently drift from what users actually see.
    */
   requiredDocuments: string[];
@@ -88,6 +85,11 @@ export const OrderDetailsCard = ({
   const [recordCashPayment, { isLoading: isRecordingCash }] =
     useRecordCashPaymentMutation();
   const [cashPaymentFor, setCashPaymentFor] = useState<string>("");
+  const { data: taxTypesResponse } = useGetAllTaxTypesQuery();
+  const taxTypeTitle = (value: string) => {
+    const taxType = taxTypesResponse?.data?.find((t) => t.value === value);
+    return taxType ? readLocalized(taxType.title, "en") : formatTaxTypeLabel(value);
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -374,34 +376,22 @@ export const OrderDetailsCard = ({
 
                 <div className="space-y-3">
                   <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-70">
-                    Tax Types & Income Sources
+                    Tax Types
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {order.tax_types?.length ||
-                    order.source_of_income?.length ? (
-                      <>
-                        {(order.tax_types || []).map((type, index) => (
-                          <Badge
-                            key={`tax-type-${type}-${index}`}
-                            variant="default"
-                            className="px-3 py-1 font-semibold text-[11px]"
-                          >
-                            {formatTaxTypeLabel(type)}
-                          </Badge>
-                        ))}
-                        {(order.source_of_income || []).map((type, index) => (
-                          <Badge
-                            key={`${type}-${index}`}
-                            variant="secondary"
-                            className="px-3 py-1 font-semibold text-[11px] bg-background"
-                          >
-                            {type}
-                          </Badge>
-                        ))}
-                      </>
+                    {order.tax_types?.length ? (
+                      order.tax_types.map((type) => (
+                        <Badge
+                          key={type}
+                          variant="default"
+                          className="px-3 py-1 font-semibold text-[11px]"
+                        >
+                          {taxTypeTitle(type)}
+                        </Badge>
+                      ))
                     ) : (
                       <span className="text-sm italic text-muted-foreground font-medium">
-                        No tax types or income sources declared
+                        No tax types declared
                       </span>
                     )}
                   </div>
