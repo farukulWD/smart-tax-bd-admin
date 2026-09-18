@@ -5,7 +5,6 @@ import Link from "next/link";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users,
   FileText,
@@ -217,41 +216,18 @@ export default function AdminDashboardPage() {
 
       <ChartCard
         title="What people are filing"
-        description={`${periodLabel} · top 10`}
+        description={`Tax types · ${periodLabel} · top 10`}
         icon={Layers}
         isLoading={chartsFetching}
         isError={chartsError}
       >
-        <Tabs defaultValue="income">
-          <TabsList>
-            <TabsTrigger value="income">Income sources</TabsTrigger>
-            <TabsTrigger value="tax-types">Tax types</TabsTrigger>
-          </TabsList>
-          <TabsContent value="income" className="pt-4">
-            {charts?.incomeSourceMix?.length ? (
-              <CategoryBarChart
-                data={charts.incomeSourceMix}
-                measureLabel="Orders"
-              />
-            ) : (
-              <p className="py-16 text-center text-sm text-muted-foreground">
-                No income sources recorded for this period.
-              </p>
-            )}
-          </TabsContent>
-          <TabsContent value="tax-types" className="pt-4">
-            {charts?.taxTypeMix?.length ? (
-              <CategoryBarChart
-                data={charts.taxTypeMix}
-                measureLabel="Orders"
-              />
-            ) : (
-              <p className="py-16 text-center text-sm text-muted-foreground">
-                No tax types recorded for this period.
-              </p>
-            )}
-          </TabsContent>
-        </Tabs>
+        {charts?.taxTypeMix?.length ? (
+          <CategoryBarChart data={charts.taxTypeMix} measureLabel="Orders" />
+        ) : (
+          <p className="py-16 text-center text-sm text-muted-foreground">
+            No tax types recorded for this period.
+          </p>
+        )}
       </ChartCard>
 
       <section className="grid gap-4 xl:grid-cols-5">

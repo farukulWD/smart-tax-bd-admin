@@ -26,7 +26,6 @@ import {
   HelpCircle,
   ListChecks,
   FileStack,
-  Coins,
   TicketPercent,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -57,7 +56,6 @@ const navGroups = [
     items: [
       { name: "Tax Types", href: "/admin/tax-types", icon: Calculator },
       { name: "File Names", href: "/admin/file-names", icon: FileStack },
-      { name: "Income Sources", href: "/admin/income-sources", icon: Coins },
     ],
   },
   {

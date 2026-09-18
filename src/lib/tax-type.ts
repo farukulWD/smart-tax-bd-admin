@@ -1,39 +1,15 @@
 import type { LocalizedText } from "@/lib/localize";
 import type { IFileName } from "@/redux/api/file-name/fileNameApi";
 
-// Keep in sync with TAX_TYPE_VALUES in
-// smart-tax-bd-server/src/app/module/taxTypes/tax.types.interface.ts
-export const TAX_TYPE_VALUES = [
-  "income_tax",
-  "income_tax_government",
-  "income_tax_non_government",
-  "house_rental_tax",
-  "property_tax",
-  "business_tax",
-  "import_duty",
-  "vat",
-  "excise_duty",
-  "customs_duty",
-  "capital_gains_tax",
-  "gift_tax",
-  "inheritance_tax",
-  "sales_tax",
-  "service_tax",
-  "entertainment_tax",
-  "environmental_tax",
-  "wealth_tax",
-  "housewife_tax_return",
-  "agriculture_tax_return",
-  "non_resident_bangladeshis",
-] as const;
-
-export type TaxTypeValue = (typeof TAX_TYPE_VALUES)[number];
+// Mirrors the server's tax-type `value` validation. Orders store the value, so
+// it is a unique key rather than display copy.
+export const TAX_TYPE_VALUE_PATTERN = /^[a-z0-9_]+$/;
 
 export type TaxType = {
   _id: string;
   title: LocalizedText | string;
   rate: number;
-  value: TaxTypeValue;
+  value: string;
   icon?: string;
   // Populated by the server, so an id-only shape is never returned.
   required_files?: IFileName[];
