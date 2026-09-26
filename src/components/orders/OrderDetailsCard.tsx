@@ -5,7 +5,10 @@ import {
   useUpdateTaxOrderMutation,
   useRecordCashPaymentMutation,
 } from "@/redux/api/order/orderApi";
-import { useUploadFileMutation } from "@/redux/api/file/fileApi";
+import {
+  useGetAdminIssuedTypesQuery,
+  useUploadFileMutation,
+} from "@/redux/api/file/fileApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -54,7 +57,8 @@ import { readLocalized } from "@/lib/localize";
 import { formatTaxTypeLabel } from "@/lib/tax-type";
 import { useGetAllTaxTypesQuery } from "@/redux/api/tax-type/taxTypeApi";
 
-const ADMIN_FILE_TYPES = ["Acknowledgement", "Tax Certificate"] as const;
+// Fallback while the server list (GET /files/admin-issued-types) loads.
+const DEFAULT_ADMIN_FILE_TYPES = ["Acknowledgement", "Tax Certificate"];
 
 interface OrderDetailsCardProps {
   order: IOrder;
@@ -82,6 +86,8 @@ export const OrderDetailsCard = ({
   const [updateTaxOrder, { isLoading: isUpdatingOrder }] =
     useUpdateTaxOrderMutation();
   const [uploadFile, { isLoading: isUploading }] = useUploadFileMutation();
+  const { data: adminIssuedTypesData } = useGetAdminIssuedTypesQuery();
+  const adminFileTypes = adminIssuedTypesData?.data ?? DEFAULT_ADMIN_FILE_TYPES;
   const [recordCashPayment, { isLoading: isRecordingCash }] =
     useRecordCashPaymentMutation();
   const [cashPaymentFor, setCashPaymentFor] = useState<string>("");
@@ -732,7 +738,7 @@ export const OrderDetailsCard = ({
                     <SelectValue placeholder="Select file type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {ADMIN_FILE_TYPES.map((type) => (
+                    {adminFileTypes.map((type) => (
                       <SelectItem
                         key={type}
                         value={type}

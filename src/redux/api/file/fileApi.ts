@@ -57,6 +57,14 @@ const fileApi = baseApi.injectEndpoints({
       }),
       providesTags: (result, error, id) => [{ type: "files", id }],
     }),
+    // Admin-issued document types (Acknowledgement, Tax Certificate, ...).
+    // The server owns this list; see files.constant.ts there.
+    getAdminIssuedTypes: builder.query<TResponse<string[]>, void>({
+      query: () => ({
+        url: "/files/admin-issued-types",
+        method: "GET",
+      }),
+    }),
     deleteFile: builder.mutation<TResponse<any>, string>({
       query: (id) => ({
         url: `/files/delete-file/${id}`,
@@ -73,4 +81,5 @@ export const {
   useGetAllFilesQuery,
   useGetSingleFileQuery,
   useDeleteFileMutation,
+  useGetAdminIssuedTypesQuery,
 } = fileApi;
