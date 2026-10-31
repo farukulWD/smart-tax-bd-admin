@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Bell, Shield, UserCog } from "lucide-react";
 import Link from "next/link";
+import { ServiceFeeCard } from "@/components/settings/service-fee-card";
 
 export default function SettingsPage() {
   return (
@@ -19,6 +20,8 @@ export default function SettingsPage() {
           behavior.
         </p>
       </section>
+
+      <ServiceFeeCard />
 
       <section className="grid gap-4 md:grid-cols-3">
         <Card>
